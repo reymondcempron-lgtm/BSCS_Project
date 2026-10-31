@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#eeeee8">
+  <meta name="description" content="A warm modern dream house in concrete, oak, and glass. Explore the furnished rooms, garden, and pool in interactive 3D.">
+  <title>Caybin Dream House</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body id="home">
+  <form id="house-controls" method="post" action="/command" target="command-result"></form>
+  <svg class="icon-defs" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6"/></symbol>
+    <symbol id="i-house" viewBox="0 0 24 24"><path d="M3 21V9h11v12m0-18h7v18M3 14h11"/></symbol>
+    <symbol id="i-room" viewBox="0 0 24 24"><path d="M4 4h16v16H4zM4 13h9V4m0 9v7"/></symbol>
+    <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 8.5a2.5 2.5 0 0 1 5 0c0 2-2.5 2-2.5 4m0 3v.5"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
+  </defs></svg>
+  <header class="topbar">
+    <a class="wordmark" href="#home" aria-label="Caybin Dream House home"><svg class="logo" aria-hidden="true"><use href="#i-house"/></svg><span>Caybin Dream House<span class="wordmark-dot">.</span></span></a>
+    <span class="topbar-project">A home, imagined in Python</span>
+    <details class="help">
+      <summary><svg aria-hidden="true"><use href="#i-help"/></svg><span>How to explore</span></summary>
+      <div class="help-panel"><strong>Make yourself at home</strong><p>Right-drag or Ctrl + left-drag to orbit using VPython. Scroll the mouse wheel to zoom in and out. Shift-drag to pan.</p><p>Choose a room to move inside. The camera and scene run in Python with VPython. On touch screens, swipe to rotate and pinch to zoom.</p><p>These architectural illustrations show the concept. They are not construction plans.</p></div>
+    </details>
+  </header>
+  <div class="workspace">
+    <aside class="sidebar" aria-label="House details and rooms">
+      <div class="project-intro">
+        <h1>Caybin Dream House</h1>
+        <p>Concrete, warm oak, and a little room to breathe. Your everyday escape.</p>
+        <dl class="house-facts"><div><dt>Storeys</dt><dd>2</dd></div><div><dt>Footprint</dt><dd>216<span> m²</span></dd></div><div><dt>Spaces</dt><dd>5</dd></div></dl>
+        <button class="primary-button" id="enter-house" type="submit" form="house-controls" name="action" value="living"><span>Explore inside</span><svg aria-hidden="true"><use href="#i-arrow"/></svg></button>
+      </div>
+      <fieldset class="room-nav"><legend>Explore the spaces</legend><button class="room-link" id="view-overview" type="submit" form="house-controls" name="action" value="overview">
+      <svg class="room-icon" aria-hidden="true"><use href="#i-house"/></svg>
+      <span><strong>Exterior overview</strong><small>The complete picture</small></span><svg class="room-chevron" aria-hidden="true"><use href="#i-chevron"/></svg></button><button class="room-link" id="view-living" type="submit" form="house-controls" name="action" value="living">
+      <svg class="room-icon" aria-hidden="true"><use href="#i-room"/></svg>
+      <span><strong>Living room</strong><small>A place to slow down</small></span><svg class="room-chevron" aria-hidden="true"><use href="#i-chevron"/></svg></button><button class="room-link" id="view-kitchen" type="submit" form="house-controls" name="action" value="kitchen">
+      <svg class="room-icon" aria-hidden="true"><use href="#i-room"/></svg>
+      <span><strong>Kitchen & dining</strong><small>Made for everyday rituals</small></span><svg class="room-chevron" aria-hidden="true"><use href="#i-chevron"/></svg></button><button class="room-link" id="view-bedroom" type="submit" form="house-controls" name="action" value="bedroom">
+      <svg class="room-icon" aria-hidden="true"><use href="#i-room"/></svg>
+      <span><strong>Bedroom</strong><small>Your quiet upstairs retreat</small></span><svg class="room-chevron" aria-hidden="true"><use href="#i-chevron"/></svg></button><button class="room-link" id="view-terrace" type="submit" form="house-controls" name="action" value="terrace">
+      <svg class="room-icon" aria-hidden="true"><use href="#i-room"/></svg>
+      <span><strong>Pool & terrace</strong><small>Life in the open air</small></span><svg class="room-chevron" aria-hidden="true"><use href="#i-chevron"/></svg></button></fieldset>
+      <div class="material-section"><h2>The material palette</h2><div class="materials"><div><span class="swatch concrete"></span><span>Concrete</span></div><div><span class="swatch oak"></span><span>Warm oak</span></div><div><span class="swatch glass"></span><span>Glass</span></div></div></div>
+      <p class="sidebar-footer">A live 3D home, built in Python</p>
+    </aside>
+    <main class="viewer-shell" aria-label="Interactive VPython house">
+      <iframe id="viewport" src="__SCENE_URL__" title="VPython 3D dream house. Right-drag to rotate, scroll to zoom, Shift-drag to pan."></iframe>
+      <div class="viewer-top">
+        <button class="tool-button" id="reset-view" type="submit" form="house-controls" name="action" value="overview">Reset view</button>
+        <div class="scene-tools"><button class="tool-button" id="roof-toggle" type="submit" form="house-controls" name="action" value="roof">Toggle roof</button><button class="tool-button" id="light-toggle" type="submit" form="house-controls" name="action" value="light">Change light</button></div>
+      </div>
+      <div class="viewer-bottom"><p class="view-hint">Right-drag to orbit · Scroll to zoom</p><div class="zoom-tools" aria-label="Camera zoom"><button id="zoom-out" class="tool-button zoom-button" type="submit" form="house-controls" name="action" value="zoom-out" aria-label="Zoom out">−</button><button id="zoom-in" class="tool-button zoom-button" type="submit" form="house-controls" name="action" value="zoom-in" aria-label="Zoom in">+</button></div></div>
+    </main>
+  </div>
+  <iframe name="command-result" class="command-result" title="Camera command response" hidden></iframe>
+</body>
+</html>
