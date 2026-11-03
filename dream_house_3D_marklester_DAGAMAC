@@ -1,0 +1,712 @@
+
+from ursina import *
+from ursina.prefabs.first_person_controller import FirstPersonController
+import math
+import random
+
+
+app = Ursina()
+
+window.title = "3D Dream House - Final Project"
+window.borderless = False
+window.fullscreen = False
+window.exit_button.visible = False
+window.fps_counter.enabled = True
+
+
+SKY_BLUE = color.rgb(135, 206, 235)
+GRASS_GREEN = color.rgb(70, 150, 75)
+WALL_WHITE = color.rgb(245, 240, 225)
+ROOF_DARK = color.rgb(65, 55, 50)
+WOOD_BROWN = color.rgb(130, 75, 40)
+FLOOR_COLOR = color.rgb(210, 190, 160)
+GLASS_BLUE = color.rgba(100, 190, 240, 180)
+POOL_BLUE = color.rgb(30, 150, 220)
+GOLD = color.rgb(255, 210, 80)
+
+
+Sky(color=SKY_BLUE)
+
+ground = Entity(
+    model="plane",
+    scale=150,
+    texture="white_cube",
+    texture_scale=(150, 150),
+    color=GRASS_GREEN,
+    collider="box"
+)
+
+
+def make_cube(name, position, scale, color_value,
+              rotation=(0, 0, 0), collider=None):
+
+    return Entity(
+        name=name,
+        model="cube",
+        position=position,
+        scale=scale,
+        color=color_value,
+        rotation=rotation,
+        collider=collider
+    )
+
+
+
+HOUSE_WIDTH = 18
+HOUSE_DEPTH = 12
+HOUSE_HEIGHT = 3.5
+
+HOUSE_X = 0
+HOUSE_Z = 0
+
+
+house_floor = make_cube(
+    "House Floor",
+    (0, 0.1, 0),
+    (HOUSE_WIDTH, 0.2, HOUSE_DEPTH),
+    FLOOR_COLOR,
+    collider="box"
+)
+
+
+make_cube(
+    "Front Wall Left",
+    (-5.5, 1.8, -6),
+    (7, 3.5, 0.4),
+    WALL_WHITE
+)
+
+make_cube(
+    "Front Wall Right",
+    (5.5, 1.8, -6),
+    (7, 3.5, 0.4),
+    WALL_WHITE
+)
+
+make_cube(
+    "Front Wall Top",
+    (0, 3.1, -6),
+    (4, 0.9, 0.4),
+    WALL_WHITE
+)
+
+make_cube(
+    "Back Wall",
+    (0, 1.8, 6),
+    (18, 3.5, 0.4),
+    WALL_WHITE
+)
+
+make_cube(
+    "Left Wall",
+    (-9, 1.8, 0),
+    (0.4, 3.5, 12),
+    WALL_WHITE
+)
+
+make_cube(
+    "Right Wall",
+    (9, 1.8, 0),
+    (0.4, 3.5, 12),
+    WALL_WHITE
+)
+
+
+make_cube(
+    "Main Roof",
+    (0, 3.9, 0),
+    (19, 0.5, 13),
+    ROOF_DARK
+)
+
+make_cube(
+    "Roof Front",
+    (0, 4.2, -6.5),
+    (19, 0.4, 1),
+    ROOF_DARK
+)
+
+
+make_cube(
+    "Living Bedroom Wall",
+    (-3, 1.7, 1),
+    (0.3, 3.2, 5),
+    WALL_WHITE
+)
+
+make_cube(
+    "Bedroom Divider",
+    (3, 1.7, 2),
+    (0.3, 3.2, 4),
+    WALL_WHITE
+)
+
+make_cube(
+    "Kitchen Divider",
+    (0, 1.7, 4),
+    (5, 3.2, 0.3),
+    WALL_WHITE
+)
+
+make_cube(
+    "Bathroom Wall",
+    (6, 1.7, -2),
+    (0.3, 3.2, 4),
+    WALL_WHITE
+)
+
+
+front_door = make_cube(
+    "Front Door",
+    (0, 1.4, -5.8),
+    (2, 2.8, 0.15),
+    WOOD_BROWN
+)
+
+make_cube(
+    "Door Handle",
+    (0.7, 1.4, -5.65),
+    (0.1, 0.15, 0.1),
+    GOLD
+)
+
+make_cube(
+    "Bedroom Door",
+    (-3, 1.3, -1.2),
+    (1.3, 2.6, 0.12),
+    WOOD_BROWN
+)
+
+make_cube(
+    "Bathroom Door",
+    (6, 1.3, -3.5),
+    (1.2, 2.6, 0.12),
+    WOOD_BROWN
+)
+
+
+def create_window(position, scale):
+
+    make_cube(
+        "Window Frame",
+        position,
+        scale,
+        color.rgb(100, 70, 40)
+    )
+
+    make_cube(
+        "Window Glass",
+        (
+            position[0],
+            position[1],
+            position[2] - 0.03
+        ),
+        (
+            scale[0] * 0.8,
+            scale[1] * 0.8,
+            scale[2] * 0.5
+        ),
+        GLASS_BLUE
+    )
+
+
+create_window((-6, 2.2, -6.2), (2, 1.5, 0.2))
+create_window((6, 2.2, -6.2), (2, 1.5, 0.2))
+create_window((-9.2, 2.2, 2), (0.2, 1.5, 2))
+create_window((9.2, 2.2, 2), (0.2, 1.5, 2))
+create_window((0, 2.2, 6.2), (3, 1.5, 0.2))
+
+
+make_cube(
+    "Living Room Sofa",
+    (-5.5, 0.7, -2),
+    (3.5, 1.2, 1.3),
+    color.rgb(80, 120, 180)
+)
+
+make_cube(
+    "Sofa Backrest",
+    (-5.5, 1.3, -1.4),
+    (3.5, 1, 0.3),
+    color.rgb(60, 100, 160)
+)
+
+for x in [-6.5, -5.5, -4.5]:
+
+    make_cube(
+        "Sofa Cushion",
+        (x, 1.35, -2),
+        (0.8, 0.2, 0.8),
+        color.rgb(180, 210, 240)
+    )
+
+make_cube(
+    "Coffee Table",
+    (-5.5, 0.6, -4),
+    (2, 0.5, 1),
+    WOOD_BROWN
+)
+
+for x in [-6.3, -4.7]:
+
+    for z in [-4.3, -3.7]:
+
+        make_cube(
+            "Table Leg",
+            (x, 0.3, z),
+            (0.15, 0.6, 0.15),
+            ROOF_DARK
+        )
+
+make_cube(
+    "TV Stand",
+    (-5.5, 0.5, 0),
+    (2.5, 0.6, 0.5),
+    WOOD_BROWN
+)
+
+make_cube(
+    "Television",
+    (-5.5, 1.6, 0.1),
+    (2.5, 1.5, 0.15),
+    color.rgb(20, 20, 25)
+)
+
+
+make_cube(
+    "Bed Frame",
+    (5.5, 0.4, 3),
+    (3.5, 0.5, 3),
+    WOOD_BROWN
+)
+
+make_cube(
+    "Mattress",
+    (5.5, 0.8, 3),
+    (3.3, 0.5, 2.8),
+    color.rgb(245, 245, 245)
+)
+
+make_cube(
+    "Bed Blanket",
+    (5.5, 1.1, 3.7),
+    (3.2, 0.2, 1.3),
+    color.rgb(80, 130, 200)
+)
+
+make_cube(
+    "Pillow Left",
+    (4.6, 1.2, 2),
+    (1, 0.3, 0.7),
+    color.rgb(255, 255, 255)
+)
+
+make_cube(
+    "Pillow Right",
+    (6.4, 1.2, 2),
+    (1, 0.3, 0.7),
+    color.rgb(255, 255, 255)
+)
+
+make_cube(
+    "Bedside Table",
+    (7.5, 0.6, 2),
+    (1, 1, 1),
+    WOOD_BROWN
+)
+
+make_cube(
+    "Bedroom Lamp",
+    (7.5, 1.5, 2),
+    (0.4, 0.8, 0.4),
+    GOLD
+)
+
+
+make_cube(
+    "Kitchen Counter",
+    (-1.5, 0.8, 4.5),
+    (4, 1.5, 1),
+    color.rgb(180, 180, 180)
+)
+
+make_cube(
+    "Kitchen Counter Top",
+    (-1.5, 1.6, 4.5),
+    (4.2, 0.15, 1.2),
+    color.rgb(240, 240, 240)
+)
+
+make_cube(
+    "Refrigerator",
+    (-4, 1.2, 4.5),
+    (1.2, 2.4, 1.2),
+    color.rgb(220, 225, 230)
+)
+
+make_cube(
+    "Fridge Handle",
+    (-3.4, 1.4, 4.5),
+    (0.08, 0.8, 0.08),
+    ROOF_DARK
+)
+
+make_cube(
+    "Stove",
+    (0, 1.7, 4.5),
+    (1.2, 0.2, 1),
+    color.rgb(40, 40, 40)
+)
+
+for x in [-0.3, 0.3]:
+
+    for z in [4.2, 4.8]:
+
+        make_cube(
+            "Stove Burner",
+            (x, 1.85, z),
+            (0.3, 0.05, 0.3),
+            ROOF_DARK
+        )
+
+
+make_cube(
+    "Dining Table",
+    (1.5, 0.9, 2),
+    (2.5, 0.3, 1.5),
+    WOOD_BROWN
+)
+
+for x in [0.5, 2.5]:
+
+    for z in [1.5, 2.5]:
+
+        make_cube(
+            "Dining Chair",
+            (x, 0.6, z),
+            (0.6, 1.2, 0.6),
+            color.rgb(140, 90, 50)
+        )
+
+
+make_cube(
+    "Bathroom Floor",
+    (6.5, 0.25, -3.5),
+    (4, 0.15, 4),
+    color.rgb(200, 220, 230)
+)
+
+make_cube(
+    "Bathroom Sink",
+    (7.5, 0.8, -4.5),
+    (1, 0.5, 0.8),
+    color.rgb(240, 240, 240)
+)
+
+make_cube(
+    "Bathroom Mirror",
+    (7.5, 1.8, -4.9),
+    (1.2, 1.5, 0.1),
+    GLASS_BLUE
+)
+
+make_cube(
+    "Toilet",
+    (5.5, 0.5, -4),
+    (0.8, 1, 1),
+    color.rgb(245, 245, 245)
+)
+
+make_cube(
+    "Toilet Seat",
+    (5.5, 1, -4),
+    (0.9, 0.2, 1),
+    color.rgb(230, 230, 230)
+)
+
+
+make_cube(
+    "Front Pathway",
+    (0, 0.15, -10),
+    (4, 0.2, 8),
+    color.rgb(180, 180, 180)
+)
+
+for i in range(6):
+
+    make_cube(
+        "Garden Stone",
+        (0, 0.25, -7 - i),
+        (2, 0.15, 0.8),
+        color.rgb(190, 190, 190)
+    )
+
+
+make_cube(
+    "Pool Base",
+    (13, -0.2, -3),
+    (10, 0.5, 7),
+    color.rgb(100, 100, 100)
+)
+
+make_cube(
+    "Swimming Pool",
+    (13, 0.1, -3),
+    (9.5, 0.15, 6.5),
+    POOL_BLUE
+)
+
+make_cube(
+    "Pool Edge",
+    (13, 0.2, -6.5),
+    (10, 0.3, 0.5),
+    color.rgb(230, 230, 230)
+)
+
+make_cube(
+    "Pool Edge",
+    (13, 0.2, 0.5),
+    (10, 0.3, 0.5),
+    color.rgb(230, 230, 230)
+)
+
+make_cube(
+    "Pool Edge",
+    (8, 0.2, -3),
+    (0.5, 0.3, 7),
+    color.rgb(230, 230, 230)
+)
+
+make_cube(
+    "Pool Edge",
+    (18, 0.2, -3),
+    (0.5, 0.3, 7),
+    color.rgb(230, 230, 230)
+)
+
+
+def create_tree(x, z):
+
+    make_cube(
+        "Tree Trunk",
+        (x, 1.5, z),
+        (0.6, 3, 0.6),
+        WOOD_BROWN
+    )
+
+    Entity(
+        model="sphere",
+        position=(x, 4, z),
+        scale=(2.5, 2.5, 2.5),
+        color=color.rgb(30, 120, 40)
+    )
+
+    Entity(
+        model="sphere",
+        position=(x - 0.5, 4.5, z),
+        scale=(1.5, 1.5, 1.5),
+        color=color.rgb(40, 140, 50)
+    )
+
+
+
+create_tree(-13, -8)
+create_tree(-13, 0)
+create_tree(-13, 8)
+
+create_tree(20, -8)
+create_tree(20, 0)
+create_tree(20, 8)
+
+create_tree(-5, -15)
+create_tree(5, -15)
+
+
+def create_flower(x, z):
+
+    make_cube(
+        "Flower Stem",
+        (x, 0.5, z),
+        (0.1, 1, 0.1),
+        color.rgb(20, 120, 30)
+    )
+
+    Entity(
+        model="sphere",
+        position=(x, 1.1, z),
+        scale=(0.4, 0.4, 0.4),
+        color=random.choice([
+            color.red,
+            color.yellow,
+            color.pink,
+            color.orange
+        ])
+    )
+
+
+
+for i in range(12):
+
+    create_flower(
+        random.uniform(-8, 8),
+        random.uniform(-14, -8)
+    )
+
+
+def create_lamp(x, z):
+
+    make_cube(
+        "Lamp Post",
+        (x, 1.5, z),
+        (0.2, 3, 0.2),
+        ROOF_DARK
+    )
+
+    make_cube(
+        "Lamp Light",
+        (x, 3.2, z),
+        (0.8, 0.5, 0.8),
+        GOLD
+    )
+
+
+create_lamp(-5, -8)
+create_lamp(5, -8)
+create_lamp(-5, -13)
+create_lamp(5, -13)
+
+
+sun = DirectionalLight(
+    rotation=(45, -45, 45),
+    color=color.white
+)
+
+sun.enabled = True
+
+ambient = AmbientLight(
+    color=color.rgba(150, 150, 150, 255)
+)
+
+
+player = FirstPersonController(
+    position=(0, 2, -12),
+    speed=5,
+    jump_height=2,
+    gravity=1
+)
+
+player.cursor.visible = False
+player.camera_pivot.y = 1.5
+
+
+title_text = Text(
+    text="3D DREAM HOUSE",
+    position=(-0.85, 0.45),
+    scale=2,
+    color=color.white
+)
+
+instruction_text = Text(
+    text="WASD: Move | Mouse: Look | Space: Jump | N: Day/Night",
+    position=(-0.85, 0.4),
+    scale=0.8,
+    color=color.white
+)
+
+crosshair = Text(
+    text="+",
+    position=(0, 0),
+    origin=(0, 0),
+    scale=2,
+    color=color.white
+)
+
+
+is_night = False
+
+
+def switch_day_night():
+
+    global is_night
+
+    is_night = not is_night
+
+    if is_night:
+
+        Sky(color=color.rgb(15, 20, 50))
+
+        sun.color = color.rgb(80, 80, 120)
+
+        ambient.color = color.rgba(
+            50, 50, 100, 255
+        )
+
+        title_text.color = GOLD
+
+    else:
+
+        Sky(color=SKY_BLUE)
+
+        sun.color = color.white
+
+        ambient.color = color.rgba(
+            150, 150, 150, 255
+        )
+
+        title_text.color = color.white
+
+
+
+def input(key):
+
+    if key == "n":
+
+        switch_day_night()
+
+    if key == "escape":
+
+        mouse.locked = not mouse.locked
+
+        player.cursor.visible = not mouse.locked
+
+    if key == "e":
+
+        mouse.locked = True
+
+        player.cursor.visible = False
+
+    if key == "q":
+
+        application.quit()
+
+
+
+def update():
+
+    player.x = max(-25, min(player.x, 25))
+
+    player.z = max(-25, min(player.z, 25))
+
+    if player.y < -5:
+
+        player.position = (0, 2, -12)
+
+    if held_keys["shift"]:
+
+        player.speed = 8
+
+    else:
+
+        player.speed = 5
+
+
+
+project_info = Text(
+    text="Final Project | Python 3D Environment",
+    position=(-0.85, -0.46),
+    scale=0.8,
+    color=color.white
+)
+
+
+app.run()
