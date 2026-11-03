@@ -1,0 +1,2039 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Modern Tropical House – Interactive 3D Architectural Visualization</title>
+  
+  <!-- Tailwind CSS & FontAwesome -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Three.js and libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/PointerLockControls.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+    
+    * {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      user-select: none;
+    }
+    
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #0f172a;
+    }
+
+    #canvas3d {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .glass-panel {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5);
+    }
+
+    .glass-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(8px);
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .glass-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+      border-color: rgba(255, 255, 255, 0.3);
+      transform: translateY(-1px);
+    }
+    .glass-btn.active {
+      background: #f97316;
+      border-color: #fb923c;
+      color: #ffffff;
+      box-shadow: 0 0 20px rgba(249, 115, 22, 0.4);
+    }
+
+    .custom-scroll::-webkit-scrollbar {
+      width: 4px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+    }
+
+    /* Crosshair for Walkthrough Mode */
+    #crosshair {
+      display: none;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 10px;
+      height: 10px;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      z-index: 50;
+    }
+    #crosshair::before, #crosshair::after {
+      content: '';
+      position: absolute;
+      background: rgba(255, 255, 255, 0.8);
+      box-shadow: 0 0 4px rgba(0,0,0,0.5);
+    }
+    #crosshair::before {
+      top: 4px;
+      left: -6px;
+      width: 22px;
+      height: 2px;
+    }
+    #crosshair::after {
+      top: -6px;
+      left: 4px;
+      width: 2px;
+      height: 22px;
+    }
+
+    /* Subtle pulse animation */
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.15); opacity: 0.4; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+    .pulse-glow {
+      animation: pulse-ring 3s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="relative text-white antialiased">
+
+  <!-- 3D WebGL Canvas -->
+  <div id="canvas-container" class="absolute inset-0">
+    <canvas id="canvas3d"></canvas>
+  </div>
+
+  <!-- Walkthrough Crosshair -->
+  <div id="crosshair"></div>
+
+  <!-- Loading Screen -->
+  <div id="loading-screen" class="absolute inset-0 bg-slate-950 flex flex-col items-center justify-center z-50 transition-opacity duration-700">
+    <div class="relative flex items-center justify-center mb-6">
+      <div class="w-20 h-20 rounded-full border-2 border-orange-500/20 border-t-orange-500 animate-spin"></div>
+      <i class="fa-solid fa-house-chimney-window text-2xl text-orange-400 absolute"></i>
+    </div>
+    <h1 class="text-2xl font-bold tracking-tight text-white mb-2">Modern Tropical Villa</h1>
+    <p class="text-sm text-slate-400 mb-6 font-medium">Recreating Architectural Geometry & Textures...</p>
+    <div class="w-64 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+      <div id="loading-bar" class="h-full bg-gradient-to-r from-amber-500 to-orange-500 w-1/3 transition-all duration-300"></div>
+    </div>
+  </div>
+
+  <!-- Header Bar -->
+  <header class="absolute top-4 left-4 right-4 flex items-center justify-between pointer-events-none z-30">
+    <div class="glass-panel pointer-events-auto px-5 py-3 rounded-2xl flex items-center gap-3">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-600 flex items-center justify-center shadow-lg shadow-orange-500/20">
+        <i class="fa-solid fa-cube text-white text-base"></i>
+      </div>
+      <div>
+        <h1 class="text-sm font-bold tracking-wide text-white leading-tight">3D DREAM HOUSE</h1>
+        <p class="text-xs text-orange-400 font-medium">Modern Tropical Minimalist Residence</p>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-2 pointer-events-auto">
+      <!-- Time of Day Selector -->
+      <div class="glass-panel px-2 py-1.5 rounded-2xl flex items-center gap-1">
+        <button id="tod-day" class="glass-btn active px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5" title="Tropical Noon">
+          <i class="fa-solid fa-sun text-amber-400"></i> <span class="hidden sm:inline">Noon</span>
+        </button>
+        <button id="tod-golden" class="glass-btn px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5" title="Golden Hour">
+          <i class="fa-solid fa-cloud-sun text-yellow-400"></i> <span class="hidden sm:inline">Golden</span>
+        </button>
+        <button id="tod-sunset" class="glass-btn px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5" title="Tropical Sunset">
+          <i class="fa-solid fa-mountain-sun text-orange-400"></i> <span class="hidden sm:inline">Sunset</span>
+        </button>
+        <button id="tod-night" class="glass-btn px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5" title="Architectural Night">
+          <i class="fa-solid fa-moon text-indigo-300"></i> <span class="hidden sm:inline">Night</span>
+        </button>
+      </div>
+
+      <!-- Audio & Fullscreen -->
+      <div class="glass-panel px-2 py-1.5 rounded-2xl flex items-center gap-1">
+        <button id="btn-audio" class="glass-btn w-9 h-9 rounded-xl flex items-center justify-center text-xs" title="Toggle Tropical Nature Ambience">
+          <i class="fa-solid fa-volume-xmark text-slate-400" id="audio-icon"></i>
+        </button>
+        <button id="btn-fullscreen" class="glass-btn w-9 h-9 rounded-xl flex items-center justify-center text-xs" title="Toggle Fullscreen">
+          <i class="fa-solid fa-expand text-slate-300"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Left Architectural Navigation & Room Teleports -->
+  <nav class="absolute left-4 top-24 bottom-24 w-64 glass-panel rounded-2xl p-4 flex flex-col justify-between z-30 transition-all duration-300 pointer-events-auto" id="left-sidebar">
+    <div class="space-y-4 overflow-y-auto custom-scroll pr-1">
+      <!-- Section: Floor Inspection -->
+      <div>
+        <div class="text-[11px] font-bold tracking-wider text-slate-400 uppercase mb-2 flex items-center gap-2">
+          <i class="fa-solid fa-layer-group text-orange-400"></i> Floor View & Cutaway
+        </div>
+        <div class="grid grid-cols-3 gap-1.5 bg-slate-900/60 p-1 rounded-xl border border-white/5">
+          <button id="floor-all" class="glass-btn active py-2 rounded-lg text-xs font-medium text-center">All</button>
+          <button id="floor-g" class="glass-btn py-2 rounded-lg text-xs font-medium text-center">Ground</button>
+          <button id="floor-2" class="glass-btn py-2 rounded-lg text-xs font-medium text-center">2nd Floor</button>
+        </div>
+        <div class="mt-2 flex items-center justify-between bg-slate-900/40 px-3 py-2 rounded-xl border border-white/5">
+          <span class="text-xs text-slate-300 font-medium">Show Roof</span>
+          <button id="toggle-roof" class="glass-btn active px-3 py-1 rounded-lg text-xs font-semibold">ON</button>
+        </div>
+      </div>
+
+      <!-- Section: Camera Viewpoints -->
+      <div>
+        <div class="text-[11px] font-bold tracking-wider text-slate-400 uppercase mb-2 flex items-center gap-2">
+          <i class="fa-solid fa-camera-retro text-amber-400"></i> Perspective Presets
+        </div>
+        <div class="grid grid-cols-2 gap-1.5">
+          <button id="view-hero" class="glass-btn active px-2.5 py-2 rounded-xl text-left text-xs font-medium flex items-center gap-2">
+            <i class="fa-solid fa-image text-orange-400"></i> Photo Angle
+          </button>
+          <button id="view-gate" class="glass-btn px-2.5 py-2 rounded-xl text-left text-xs font-medium flex items-center gap-2">
+            <i class="fa-solid fa-door-open text-amber-400"></i> Front Gate
+          </button>
+          <button id="view-top" class="glass-btn px-2.5 py-2 rounded-xl text-left text-xs font-medium flex items-center gap-2">
+            <i class="fa-solid fa-compass text-emerald-400"></i> Top Down
+          </button>
+          <button id="view-pool" class="glass-btn px-2.5 py-2 rounded-xl text-left text-xs font-medium flex items-center gap-2">
+            <i class="fa-solid fa-water text-cyan-400"></i> Garden Pool
+          </button>
+          <button id="view-carport" class="glass-btn px-2.5 py-2 rounded-xl text-left text-xs font-medium flex items-center gap-2">
+            <i class="fa-solid fa-car text-blue-400"></i> Carport
+          </button>
+          <button id="view-balcony" class="glass-btn px-2.5 py-2 rounded-xl text-left text-xs font-medium flex items-center gap-2">
+            <i class="fa-solid fa-umbrella-beach text-rose-400"></i> Balcony
+          </button>
+        </div>
+      </div>
+
+      <!-- Section: Room Explorer -->
+      <div>
+        <div class="text-[11px] font-bold tracking-wider text-slate-400 uppercase mb-2 flex items-center gap-2">
+          <i class="fa-solid fa-map-pin text-rose-400"></i> Explore Rooms
+        </div>
+        <div class="space-y-1">
+          <button id="room-living" class="w-full glass-btn px-3 py-2 rounded-xl text-left text-xs font-medium flex items-center justify-between">
+            <span class="flex items-center gap-2"><i class="fa-solid fa-couch text-amber-400"></i> Living Room</span>
+            <span class="text-[10px] text-slate-400">Ground</span>
+          </button>
+          <button id="room-dining" class="w-full glass-btn px-3 py-2 rounded-xl text-left text-xs font-medium flex items-center justify-between">
+            <span class="flex items-center gap-2"><i class="fa-solid fa-utensils text-orange-400"></i> Dining Area</span>
+            <span class="text-[10px] text-slate-400">Ground</span>
+          </button>
+          <button id="room-kitchen" class="w-full glass-btn px-3 py-2 rounded-xl text-left text-xs font-medium flex items-center justify-between">
+            <span class="flex items-center gap-2"><i class="fa-solid fa-kitchen-set text-emerald-400"></i> Chef's Kitchen</span>
+            <span class="text-[10px] text-slate-400">Ground</span>
+          </button>
+          <button id="room-master" class="w-full glass-btn px-3 py-2 rounded-xl text-left text-xs font-medium flex items-center justify-between">
+            <span class="flex items-center gap-2"><i class="fa-solid fa-bed text-indigo-400"></i> Master Suite</span>
+            <span class="text-[10px] text-slate-400">2nd Fl</span>
+          </button>
+          <button id="room-bed2" class="w-full glass-btn px-3 py-2 rounded-xl text-left text-xs font-medium flex items-center justify-between">
+            <span class="flex items-center gap-2"><i class="fa-solid fa-door-closed text-cyan-400"></i> Bedroom 2</span>
+            <span class="text-[10px] text-slate-400">2nd Fl</span>
+          </button>
+          <button id="room-bed3" class="w-full glass-btn px-3 py-2 rounded-xl text-left text-xs font-medium flex items-center justify-between">
+            <span class="flex items-center gap-2"><i class="fa-solid fa-door-closed text-purple-400"></i> Bedroom 3</span>
+            <span class="text-[10px] text-slate-400">2nd Fl</span>
+          </button>
+          <button id="room-lounge" class="w-full glass-btn px-3 py-2 rounded-xl text-left text-xs font-medium flex items-center justify-between">
+            <span class="flex items-center gap-2"><i class="fa-solid fa-book-open text-sky-400"></i> Family Lounge</span>
+            <span class="text-[10px] text-slate-400">2nd Fl</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mode Selector & Controls -->
+    <div class="pt-3 border-t border-white/10 space-y-2">
+      <button id="btn-walkthrough" class="w-full bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-lg shadow-orange-500/25 transition-all">
+        <i class="fa-solid fa-person-walking text-base"></i> Enter Walkthrough Mode
+      </button>
+      <div class="flex items-center gap-1.5">
+        <button id="btn-autorotate" class="flex-1 glass-btn py-1.5 rounded-xl text-xs font-medium flex items-center justify-center gap-1.5" title="Toggle 360° Turntable">
+          <i class="fa-solid fa-arrows-rotate text-slate-300"></i> Auto-Rotate
+        </button>
+        <button id="btn-reset" class="glass-btn px-3 py-1.5 rounded-xl text-xs font-medium flex items-center justify-center gap-1" title="Reset Camera">
+          <i class="fa-solid fa-arrow-rotate-left"></i>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Walkthrough Instructions Banner (Shows when Walkthrough is active) -->
+  <div id="walkthrough-hint" class="hidden absolute top-20 left-1/2 -translate-x-1/2 glass-panel px-6 py-3 rounded-2xl z-40 border border-orange-500/30 flex items-center gap-5 shadow-2xl">
+    <div class="flex items-center gap-2 text-xs">
+      <span class="bg-slate-800 px-2 py-1 rounded border border-white/20 font-mono font-bold">W A S D</span>
+      <span class="text-slate-300">Move</span>
+    </div>
+    <div class="flex items-center gap-2 text-xs">
+      <span class="bg-slate-800 px-2 py-1 rounded border border-white/20 font-mono font-bold">MOUSE</span>
+      <span class="text-slate-300">Look Around</span>
+    </div>
+    <div class="flex items-center gap-2 text-xs">
+      <span class="bg-slate-800 px-2 py-1 rounded border border-white/20 font-mono font-bold">SHIFT</span>
+      <span class="text-slate-300">Run</span>
+    </div>
+    <button id="btn-exit-walk" class="bg-red-500 hover:bg-red-600 text-white font-bold text-xs px-3 py-1.5 rounded-xl ml-2 transition-all">
+      Exit Walk (ESC)
+    </button>
+  </div>
+
+  <!-- Bottom Interactive HUD / Room Spec Banner -->
+  <div class="absolute bottom-4 left-4 right-4 flex items-center justify-between pointer-events-none z-30">
+    <div class="glass-panel pointer-events-auto px-4 py-2.5 rounded-2xl flex items-center gap-3">
+      <div class="w-2.5 h-2.5 rounded-full bg-emerald-400 pulse-glow"></div>
+      <div id="info-status" class="text-xs font-medium text-slate-200">
+        <span class="text-orange-400 font-bold" id="info-title">Exterior View</span> &bull; 
+        <span id="info-desc">Modern tropical architecture surrounded by emerald rice fields. Click rooms or features to inspect.</span>
+      </div>
+    </div>
+
+    <!-- Controls helper overlay -->
+    <div class="hidden md:flex glass-panel pointer-events-auto px-4 py-2 rounded-2xl text-[11px] text-slate-400 items-center gap-4">
+      <span><i class="fa-solid fa-computer-mouse text-slate-300 mr-1"></i> Left Drag: Rotate</span>
+      <span><i class="fa-solid fa-arrows-up-down-left-right text-slate-300 mr-1"></i> Right Drag: Pan</span>
+      <span><i class="fa-solid fa-magnifying-glass-plus text-slate-300 mr-1"></i> Wheel: Zoom</span>
+    </div>
+  </div>
+
+  <!-- Three.js Visualizer Engine Script -->
+  <script>
+    /* ==========================================================================
+       MODERN TROPICAL HOUSE 3D VISUALIZATION ENGINE
+       Accurately recreating the reference architecture:
+       - 2-Storey Minimalist Villa with Asymmetrical Overhanging Shed Roof
+       - Cantilevered Balcony with Black Metal Railing
+       - Teak Timber Slat Upper Facade & Soffit
+       - Ground Floor Covered Lounge with White Columns & Outdoor Sofa
+       - Attached Modern Carport with Concrete Driveway
+       - Natural Stone Organic Front Pond / Swimming Pool with Fountain Rocks
+       - Stepping Stones across Lawn
+       - Lush Tropical Vegetation (Traveler's Palms, Banana plants, Frangipani)
+       - Boundary Fence with Wooden Gate & White Pillars
+       - Endless Emerald Green Rice Paddy Terraces
+       - Full Ground & Second Floor Furnished Interiors
+       ========================================================================== */
+
+    const STATE = {
+      tod: 'day', // 'day', 'golden', 'sunset', 'night'
+      floorMode: 'all', // 'all', 'g', '2'
+      showRoof: true,
+      autoRotate: false,
+      isWalkthrough: false,
+      audioPlaying: false
+    };
+
+    // DOM Elements
+    const canvas = document.getElementById('canvas3d');
+    const loadingScreen = document.getElementById('loading-screen');
+    const loadingBar = document.getElementById('loading-bar');
+    const infoTitle = document.getElementById('info-title');
+    const infoDesc = document.getElementById('info-desc');
+    const crosshair = document.getElementById('crosshair');
+    const walkthroughHint = document.getElementById('walkthrough-hint');
+    const leftSidebar = document.getElementById('left-sidebar');
+
+    // Setup Three.js Scene, Camera, Renderer
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xa0c8f0);
+    scene.fog = new THREE.FogExp2(0xa0c8f0, 0.007);
+
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 500);
+    
+    // Initial camera position matching reference image photo angle!
+    // Slightly elevated, front-right perspective looking down at the house and pond
+    camera.position.set(16, 17, 28);
+
+    const renderer = new THREE.WebGLRenderer({
+      canvas: canvas,
+      antialias: true,
+      powerPreference: 'high-performance'
+    });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.05;
+    renderer.outputEncoding = THREE.sRGBEncoding;
+
+    // Orbit Controls
+    const orbit = new THREE.OrbitControls(camera, renderer.domElement);
+    orbit.enableDamping = true;
+    orbit.dampingFactor = 0.05;
+    orbit.maxPolarAngle = Math.PI / 2 - 0.02; // Don't go below ground
+    orbit.minDistance = 3;
+    orbit.maxDistance = 120;
+    orbit.target.set(0, 4, 1);
+
+    // PointerLock Controls for Walkthrough
+    const pointerLock = new THREE.PointerLockControls(camera, document.body);
+    const moveState = { forward: false, backward: false, left: false, right: false, sprint: false };
+    const velocity = new THREE.Vector3();
+    const direction = new THREE.Vector3();
+
+    // Scene Groups for Hierarchy & Cutaway Toggles
+    const worldGroup = new THREE.Group();
+    const houseGroup = new THREE.Group();
+    const groundFloorGroup = new THREE.Group();
+    const secondFloorGroup = new THREE.Group();
+    const roofGroup = new THREE.Group();
+    const landscapeGroup = new THREE.Group();
+    const lightsGroup = new THREE.Group();
+
+    houseGroup.add(groundFloorGroup);
+    houseGroup.add(secondFloorGroup);
+    houseGroup.add(roofGroup);
+    worldGroup.add(houseGroup);
+    worldGroup.add(landscapeGroup);
+    worldGroup.add(lightsGroup);
+    scene.add(worldGroup);
+
+    // =========================================================================
+    // PROCEDURAL TEXTURE GENERATION (No external image dependencies)
+    // =========================================================================
+    function createWoodTexture(isSlats = false, tint = '#99582a') {
+      const c = document.createElement('canvas');
+      c.width = 512;
+      c.height = 512;
+      const ctx = c.getContext('2d');
+
+      // Base wood tone
+      ctx.fillStyle = tint;
+      ctx.fillRect(0, 0, 512, 512);
+
+      // Fine wood grain lines
+      for (let y = 0; y < 512; y += 2) {
+        const noise = (Math.random() - 0.5) * 15;
+        ctx.fillStyle = `rgba(50, 20, 5, ${0.08 + Math.random() * 0.06})`;
+        ctx.fillRect(0, y, 512, 1.5 + noise * 0.1);
+      }
+
+      // Vertical slats if requested (like the upper facade & ceilings)
+      if (isSlats) {
+        const slatWidth = 32;
+        for (let x = 0; x < 512; x += slatWidth) {
+          ctx.fillStyle = 'rgba(15, 7, 3, 0.75)';
+          ctx.fillRect(x, 0, 3, 512); // Deep groove
+          
+          ctx.fillStyle = 'rgba(255, 200, 150, 0.12)';
+          ctx.fillRect(x + 3, 0, 2, 512); // Highlight edge
+        }
+      }
+
+      const tex = new THREE.CanvasTexture(c);
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.RepeatWrapping;
+      return tex;
+    }
+
+    function createConcreteTexture() {
+      const c = document.createElement('canvas');
+      c.width = 512;
+      c.height = 512;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#f8fafc';
+      ctx.fillRect(0, 0, 512, 512);
+
+      // Subtle noise stipple
+      for (let i = 0; i < 40000; i++) {
+        const x = Math.random() * 512;
+        const y = Math.random() * 512;
+        const v = Math.random() > 0.5 ? 255 : 200;
+        ctx.fillStyle = `rgba(${v},${v},${v}, 0.04)`;
+        ctx.fillRect(x, y, 1.5, 1.5);
+      }
+      const tex = new THREE.CanvasTexture(c);
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.RepeatWrapping;
+      return tex;
+    }
+
+    function createTileTexture() {
+      const c = document.createElement('canvas');
+      c.width = 512;
+      c.height = 512;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#e2e8f0';
+      ctx.fillRect(0, 0, 512, 512);
+
+      // Tile grid
+      ctx.strokeStyle = '#cbd5e1';
+      ctx.lineWidth = 4;
+      ctx.strokeRect(0, 0, 512, 512);
+      ctx.beginPath();
+      ctx.moveTo(256, 0); ctx.lineTo(256, 512);
+      ctx.moveTo(0, 256); ctx.lineTo(512, 256);
+      ctx.stroke();
+
+      const tex = new THREE.CanvasTexture(c);
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.RepeatWrapping;
+      tex.repeat.set(8, 8);
+      return tex;
+    }
+
+    function createGrassTexture() {
+      const c = document.createElement('canvas');
+      c.width = 512;
+      c.height = 512;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#4d7c0f'; // Lush tropical green
+      ctx.fillRect(0, 0, 512, 512);
+
+      // Grass variation
+      for (let i = 0; i < 35000; i++) {
+        const x = Math.random() * 512;
+        const y = Math.random() * 512;
+        ctx.fillStyle = Math.random() > 0.5 ? '#65a30d' : '#3f6212';
+        ctx.fillRect(x, y, 2, 4);
+      }
+      const tex = new THREE.CanvasTexture(c);
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.RepeatWrapping;
+      tex.repeat.set(16, 16);
+      return tex;
+    }
+
+    function createWaterTexture() {
+      const c = document.createElement('canvas');
+      c.width = 256;
+      c.height = 256;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#0284c7';
+      ctx.fillRect(0, 0, 256, 256);
+
+      // Caustic ripples
+      for (let i = 0; i < 40; i++) {
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+        ctx.lineWidth = 3 + Math.random() * 4;
+        ctx.beginPath();
+        const cx = Math.random() * 256;
+        const cy = Math.random() * 256;
+        ctx.arc(cx, cy, 20 + Math.random() * 50, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      const tex = new THREE.CanvasTexture(c);
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.RepeatWrapping;
+      return tex;
+    }
+
+    // Material Library
+    const MAT = {
+      whiteWall: new THREE.MeshStandardMaterial({
+        color: 0xf8fafc,
+        roughness: 0.35,
+        metalness: 0.05,
+        map: createConcreteTexture()
+      }),
+      woodSlat: new THREE.MeshStandardMaterial({
+        color: 0x935028, // Warm rich teak
+        roughness: 0.45,
+        metalness: 0.05,
+        map: createWoodTexture(true, '#935028')
+      }),
+      woodDark: new THREE.MeshStandardMaterial({
+        color: 0x5c3317,
+        roughness: 0.4,
+        metalness: 0.05,
+        map: createWoodTexture(false, '#5c3317')
+      }),
+      orangeAccent: new THREE.MeshStandardMaterial({
+        color: 0xb45309, // Warm terracotta accent panel
+        roughness: 0.5,
+        metalness: 0.05
+      }),
+      glass: new THREE.MeshPhysicalMaterial({
+        color: 0xbfdbfe,
+        transparent: true,
+        opacity: 0.38,
+        roughness: 0.05,
+        metalness: 0.1,
+        transmission: 0.7,
+        ior: 1.5,
+        reflectivity: 0.9
+      }),
+      blackFrame: new THREE.MeshStandardMaterial({
+        color: 0x1e293b,
+        roughness: 0.3,
+        metalness: 0.7
+      }),
+      floorTile: new THREE.MeshStandardMaterial({
+        color: 0xf1f5f9,
+        roughness: 0.25,
+        metalness: 0.1,
+        map: createTileTexture()
+      }),
+      grass: new THREE.MeshStandardMaterial({
+        color: 0x4d7c0f,
+        roughness: 0.85,
+        metalness: 0.0,
+        map: createGrassTexture()
+      }),
+      water: new THREE.MeshStandardMaterial({
+        color: 0x0369a1,
+        roughness: 0.1,
+        metalness: 0.8,
+        transparent: true,
+        opacity: 0.78,
+        map: createWaterTexture()
+      }),
+      driveway: new THREE.MeshStandardMaterial({
+        color: 0xe2e8f0,
+        roughness: 0.6,
+        metalness: 0.05
+      }),
+      rock: new THREE.MeshStandardMaterial({
+        color: 0x475569,
+        roughness: 0.8,
+        metalness: 0.1
+      }),
+      fabricSofa: new THREE.MeshStandardMaterial({
+        color: 0xd6d3d1,
+        roughness: 0.8,
+        metalness: 0.0
+      }),
+      bedSheet: new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        roughness: 0.6
+      }),
+      goldBrass: new THREE.MeshStandardMaterial({
+        color: 0xf59e0b,
+        roughness: 0.2,
+        metalness: 0.85
+      })
+    };
+
+    // Configure Texture Repeats
+    MAT.woodSlat.map.repeat.set(4, 1);
+    MAT.whiteWall.map.repeat.set(3, 3);
+
+    // =========================================================================
+    // LIGHTING & ATMOSPHERE
+    // =========================================================================
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.45);
+    lightsGroup.add(ambientLight);
+
+    const sunLight = new THREE.DirectionalLight(0xfffaed, 1.4);
+    sunLight.position.set(35, 45, 25);
+    sunLight.castShadow = true;
+    sunLight.shadow.mapSize.width = 2048;
+    sunLight.shadow.mapSize.height = 2048;
+    sunLight.shadow.camera.near = 0.5;
+    sunLight.shadow.camera.far = 160;
+    sunLight.shadow.camera.left = -30;
+    sunLight.shadow.camera.right = 30;
+    sunLight.shadow.camera.top = 30;
+    sunLight.shadow.camera.bottom = -30;
+    sunLight.shadow.bias = -0.0005;
+    lightsGroup.add(sunLight);
+
+    // Architectural Night & Warm Interior Accent Lights
+    const warmLights = [];
+    function addWarmPointLight(x, y, z, intensity = 1.0, distance = 8) {
+      const p = new THREE.PointLight(0xffaa44, intensity, distance);
+      p.position.set(x, y, z);
+      lightsGroup.add(p);
+      warmLights.push(p);
+      return p;
+    }
+
+    // Ground Floor Downlights & Exterior Lounge Lights
+    addWarmPointLight(0, 2.9, 2.5, 0.8, 6);   // Lounge patio
+    addWarmPointLight(-2, 2.9, -1, 1.0, 8);  // Living room
+    addWarmPointLight(-2, 2.9, -4.5, 1.0, 8);// Kitchen/Dining
+    addWarmPointLight(5.5, 3.2, 0, 0.8, 7);  // Carport
+    
+    // 2nd Floor Downlights & Balcony
+    addWarmPointLight(0, 6.4, 2.5, 0.8, 6);   // Front Balcony
+    addWarmPointLight(-2, 6.4, 0, 1.0, 8);   // Master Suite
+    addWarmPointLight(1.5, 6.4, -4, 0.9, 7); // Bedroom 2
+    addWarmPointLight(-2.5, 6.4, -4, 0.9, 7);// Bedroom 3
+
+    // Pool & Garden Glow Lights
+    addWarmPointLight(-7, 0.4, 8, 1.2, 6);   // Pool underwater/edge
+    addWarmPointLight(2, 0.8, 18, 0.6, 5);   // Front Gate light
+
+    // =========================================================================
+    // LANDSCAPE & SURROUNDINGS (Rice Fields, Pond, Driveway, Fence, Gate)
+    // =========================================================================
+    function buildLandscape() {
+      // 1. Surrounding Endless Rice Paddies Landscape
+      const paddyGeo = new THREE.PlaneGeometry(350, 350, 24, 24);
+      paddyGeo.rotateX(-Math.PI / 2);
+      const paddyMat = new THREE.MeshStandardMaterial({
+        color: 0x65a30d, // Bright lush rice field green
+        roughness: 0.9,
+        metalness: 0.0
+      });
+      const paddyMesh = new THREE.Mesh(paddyGeo, paddyMat);
+      paddyMesh.position.y = -0.15;
+      paddyMesh.receiveShadow = true;
+      landscapeGroup.add(paddyMesh);
+
+      // Paddy ridges / dikes to create authentic agricultural countryside look
+      for (let i = -160; i <= 160; i += 30) {
+        const ridgeX = new THREE.Mesh(
+          new THREE.BoxGeometry(350, 0.25, 0.8),
+          new THREE.MeshStandardMaterial({ color: 0x4d7c0f, roughness: 0.95 })
+        );
+        ridgeX.position.set(0, -0.05, i);
+        landscapeGroup.add(ridgeX);
+
+        const ridgeZ = new THREE.Mesh(
+          new THREE.BoxGeometry(0.8, 0.25, 350),
+          new THREE.MeshStandardMaterial({ color: 0x4d7c0f, roughness: 0.95 })
+        );
+        ridgeZ.position.set(i, -0.05, 0);
+        landscapeGroup.add(ridgeZ);
+      }
+
+      // 2. Residential Property Lawn (elevated slightly above countryside)
+      const lotGeo = new THREE.BoxGeometry(26, 0.3, 38);
+      const lotMesh = new THREE.Mesh(lotGeo, MAT.grass);
+      lotMesh.position.set(0, 0.0, 3);
+      lotMesh.receiveShadow = true;
+      landscapeGroup.add(lotMesh);
+
+      // 3. Concrete Driveway leading to Carport (matching photo)
+      const driveGeo = new THREE.BoxGeometry(4.2, 0.32, 22);
+      const driveway = new THREE.Mesh(driveGeo, MAT.driveway);
+      driveway.position.set(4.5, 0.01, 10);
+      driveway.receiveShadow = true;
+      landscapeGroup.add(driveway);
+
+      // 4. Rectangular Stepping Stone Walkway across lawn
+      for (let i = 0; i < 7; i++) {
+        const step = new THREE.Mesh(
+          new THREE.BoxGeometry(2.4, 0.34, 0.9),
+          MAT.driveway
+        );
+        step.position.set(-1.0, 0.01, 4.5 + i * 1.6);
+        step.receiveShadow = true;
+        landscapeGroup.add(step);
+      }
+
+      // 5. Decorative Front-Left Pond / Swimming Pool with Natural Boulders
+      const poolOuter = new THREE.Mesh(
+        new THREE.CylinderGeometry(4.2, 4.4, 0.6, 24),
+        MAT.rock
+      );
+      poolOuter.position.set(-6.5, 0.05, 10);
+      poolOuter.scale.set(1.2, 1, 1.6); // Organic oval
+      landscapeGroup.add(poolOuter);
+
+      const poolWater = new THREE.Mesh(
+        new THREE.CylinderGeometry(4.0, 4.0, 0.5, 24),
+        MAT.water
+      );
+      poolWater.position.set(-6.5, 0.15, 10);
+      poolWater.scale.set(1.15, 1, 1.55);
+      poolWater.name = "swimming-pool";
+      landscapeGroup.add(poolWater);
+
+      // Natural River Boulders around the pond
+      const rockCoords = [
+        [-10, 0.4, 7], [-9.5, 0.5, 13], [-4.2, 0.4, 7.5], [-3.8, 0.4, 11],
+        [-8, 0.5, 14], [-5.5, 0.4, 14], [-7, 0.6, 6.5]
+      ];
+      rockCoords.forEach(([rx, ry, rz], idx) => {
+        const rockSize = 0.5 + (idx % 3) * 0.3;
+        const boulder = new THREE.Mesh(
+          new THREE.DodecahedronGeometry(rockSize, 1),
+          MAT.rock
+        );
+        boulder.position.set(rx, ry, rz);
+        boulder.rotation.set(Math.random(), Math.random(), Math.random());
+        boulder.castShadow = true;
+        boulder.receiveShadow = true;
+        landscapeGroup.add(boulder);
+      });
+
+      // 6. Perimeter Fence & Front Entrance Gate (matching reference image)
+      buildPerimeterFence();
+
+      // 7. Tropical Plants & Trees (Traveler's Palms, Banana plants, Frangipani)
+      buildTropicalVegetation();
+    }
+
+    function buildPerimeterFence() {
+      // White concrete base and pillars with wood slat inserts
+      const postMat = MAT.whiteWall;
+      const slatMat = MAT.orangeAccent;
+
+      // Front Gate Wall (Z = 20)
+      // Left front fence
+      const fenceL = new THREE.Mesh(new THREE.BoxGeometry(9, 1.4, 0.25), slatMat);
+      fenceL.position.set(-8.5, 0.7, 20);
+      fenceL.castShadow = true;
+      landscapeGroup.add(fenceL);
+
+      const fenceLBase = new THREE.Mesh(new THREE.BoxGeometry(9.2, 0.4, 0.4), postMat);
+      fenceLBase.position.set(-8.5, 0.2, 20);
+      landscapeGroup.add(fenceLBase);
+
+      // Front Wooden Gate (Center-right in front of driveway)
+      const gateGroup = new THREE.Group();
+      const gateDoor = new THREE.Mesh(new THREE.BoxGeometry(4.8, 1.6, 0.1), MAT.woodDark);
+      gateDoor.position.set(0, 0.8, 0);
+      gateDoor.castShadow = true;
+      gateGroup.add(gateDoor);
+
+      // Gate Slats detail
+      for (let x = -2.2; x <= 2.2; x += 0.25) {
+        const slat = new THREE.Mesh(new THREE.BoxGeometry(0.12, 1.5, 0.14), MAT.woodSlat);
+        slat.position.set(x, 0.8, 0);
+        gateGroup.add(slat);
+      }
+      gateGroup.position.set(4.5, 0, 20);
+      landscapeGroup.add(gateGroup);
+
+      // Gate White Concrete Pillars
+      const pillar1 = new THREE.Mesh(new THREE.BoxGeometry(0.7, 2.0, 0.7), postMat);
+      pillar1.position.set(1.8, 1.0, 20);
+      pillar1.castShadow = true;
+      landscapeGroup.add(pillar1);
+
+      const pillar2 = new THREE.Mesh(new THREE.BoxGeometry(0.7, 2.0, 0.7), postMat);
+      pillar2.position.set(7.2, 1.0, 20);
+      pillar2.castShadow = true;
+      landscapeGroup.add(pillar2);
+
+      // Right Side Fence (running along driveway)
+      const fenceR = new THREE.Mesh(new THREE.BoxGeometry(0.25, 1.4, 34), slatMat);
+      fenceR.position.set(12, 0.7, 4);
+      fenceR.castShadow = true;
+      landscapeGroup.add(fenceR);
+
+      // Left Side Fence
+      const fenceLeft = new THREE.Mesh(new THREE.BoxGeometry(0.25, 1.4, 34), slatMat);
+      fenceLeft.position.set(-12, 0.7, 4);
+      landscapeGroup.add(fenceLeft);
+    }
+
+    function buildTropicalVegetation() {
+      // Banana Plant / Traveler's Palm Generator
+      function createBananaPlant(x, z, scale = 1.0) {
+        const group = new THREE.Group();
+        group.position.set(x, 0, z);
+
+        // Green Stem/Trunk
+        const stem = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.12 * scale, 0.2 * scale, 1.8 * scale, 8),
+          new THREE.MeshStandardMaterial({ color: 0x4d7c0f, roughness: 0.7 })
+        );
+        stem.position.y = 0.9 * scale;
+        group.add(stem);
+
+        // Broad Paddle Leaves (Fan out nicely)
+        const leafMat = new THREE.MeshStandardMaterial({
+          color: 0x65a30d,
+          roughness: 0.5,
+          side: THREE.DoubleSide
+        });
+
+        const angles = [0, 0.7, 1.4, 2.1, 2.8, 3.5, 4.2, 4.9, 5.6];
+        angles.forEach((ang, i) => {
+          const leafGeo = new THREE.PlaneGeometry(0.8 * scale, 2.4 * scale);
+          leafGeo.translate(0, 1.2 * scale, 0);
+          const leaf = new THREE.Mesh(leafGeo, leafMat);
+          leaf.position.set(0, 1.5 * scale, 0);
+          leaf.rotation.y = ang;
+          leaf.rotation.x = 0.6 + (i % 2) * 0.2;
+          leaf.castShadow = true;
+          group.add(leaf);
+        });
+
+        landscapeGroup.add(group);
+      }
+
+      // Banana Plants along the driveway fence (matching photo!)
+      createBananaPlant(10.5, 16, 1.3);
+      createBananaPlant(10.8, 13, 1.1);
+      createBananaPlant(10.6, 9.5, 1.2);
+      createBananaPlant(10.7, 6, 1.0);
+
+      // Frangipani / Flowering Tree near pond
+      function createFrangipani(x, z) {
+        const group = new THREE.Group();
+        group.position.set(x, 0, z);
+
+        // Twisted trunk
+        const trunkMat = new THREE.MeshStandardMaterial({ color: 0x78716c, roughness: 0.9 });
+        const t1 = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.25, 2.2, 7), trunkMat);
+        t1.position.set(0, 1.1, 0);
+        t1.rotation.z = 0.15;
+        group.add(t1);
+
+        const b1 = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.12, 1.6, 6), trunkMat);
+        b1.position.set(0.4, 2.4, 0.2);
+        b1.rotation.z = 0.6;
+        group.add(b1);
+
+        // Canopy foliage clumps
+        const folMat = new THREE.MeshStandardMaterial({ color: 0x22c55e, roughness: 0.6 });
+        const c1 = new THREE.Mesh(new THREE.DodecahedronGeometry(1.2, 1), folMat);
+        c1.position.set(0.7, 3.2, 0.3);
+        c1.castShadow = true;
+        group.add(c1);
+
+        const c2 = new THREE.Mesh(new THREE.DodecahedronGeometry(1.0, 1), folMat);
+        c2.position.set(-0.5, 2.9, -0.2);
+        c2.castShadow = true;
+        group.add(c2);
+
+        landscapeGroup.add(group);
+      }
+
+      createFrangipani(-8, 5);  // Near pond
+      createFrangipani(8.5, 4); // Near carport entrance
+
+      // Low foundation shrubs along house perimeter
+      for (let x = -3.5; x <= 2.5; x += 0.8) {
+        const bush = new THREE.Mesh(
+          new THREE.SphereGeometry(0.35, 7, 7),
+          new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.7 })
+        );
+        bush.position.set(x, 0.35, 3.8);
+        bush.scale.set(1.2, 0.8, 1);
+        landscapeGroup.add(bush);
+      }
+    }
+
+    // =========================================================================
+    // HOUSE ARCHITECTURE – GROUND FLOOR
+    // =========================================================================
+    function buildGroundFloor() {
+      // 1. Ground Floor Foundation Slab
+      const slab = new THREE.Mesh(
+        new THREE.BoxGeometry(9.0, 0.3, 11.5),
+        MAT.floorTile
+      );
+      slab.position.set(-0.5, 0.15, -1.5);
+      slab.receiveShadow = true;
+      groundFloorGroup.add(slab);
+
+      // Covered Lounge Front Porch Slab (beneath balcony)
+      const porch = new THREE.Mesh(
+        new THREE.BoxGeometry(8.0, 0.28, 4.0),
+        MAT.floorTile
+      );
+      porch.position.set(-1.0, 0.14, 2.5);
+      porch.receiveShadow = true;
+      groundFloorGroup.add(porch);
+
+      // 2. White Sturdy Support Columns (Front corners under balcony)
+      const colMat = MAT.whiteWall;
+      const colL = new THREE.Mesh(new THREE.BoxGeometry(0.5, 3.4, 0.5), colMat);
+      colL.position.set(-3.7, 1.85, 3.8);
+      colL.castShadow = true;
+      groundFloorGroup.add(colL);
+
+      const colR = new THREE.Mesh(new THREE.BoxGeometry(0.5, 3.4, 0.5), colMat);
+      colR.position.set(1.5, 1.85, 3.8);
+      colR.castShadow = true;
+      groundFloorGroup.add(colR);
+
+      // 3. Ground Floor Outdoor Lounge Furniture (Under Balcony)
+      buildOutdoorLounge();
+
+      // 4. Ground Floor Perimeter Enclosure & Floor-to-Ceiling Glass Sliding Doors
+      buildGroundWallsAndGlass();
+
+      // 5. Interior Spaces: Living Room, Dining Area, Kitchen, Powder Room, Stairs
+      buildLivingRoom();
+      buildDiningArea();
+      buildKitchen();
+      buildStaircase();
+    }
+
+    function buildOutdoorLounge() {
+      // Outdoor Sofa (matching photo under cantilevered balcony)
+      const sofaGroup = new THREE.Group();
+      sofaGroup.position.set(-1.0, 0.3, 2.8);
+
+      // Wood frame base
+      const base = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.25, 0.9), MAT.woodDark);
+      base.position.y = 0.2;
+      sofaGroup.add(base);
+
+      // Seat cushions
+      const seat = new THREE.Mesh(new THREE.BoxGeometry(2.3, 0.2, 0.8), MAT.fabricSofa);
+      seat.position.y = 0.42;
+      sofaGroup.add(seat);
+
+      // Backrest
+      const back = new THREE.Mesh(new THREE.BoxGeometry(2.3, 0.5, 0.2), MAT.fabricSofa);
+      back.position.set(0, 0.65, -0.32);
+      sofaGroup.add(back);
+
+      // Coffee table
+      const table = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.3, 0.6), MAT.woodDark);
+      table.position.set(0, 0.15, 0.9);
+      sofaGroup.add(table);
+
+      groundFloorGroup.add(sofaGroup);
+    }
+
+    function buildGroundWallsAndGlass() {
+      // Front Floor-to-Ceiling Glass Sliding Doors (connecting lounge to living room)
+      const glassFront = new THREE.Mesh(new THREE.BoxGeometry(5.2, 3.1, 0.08), MAT.glass);
+      glassFront.position.set(-1.1, 1.85, 0.8);
+      groundFloorGroup.add(glassFront);
+
+      // Black Aluminum Door Frames & Mullions
+      const frameMat = MAT.blackFrame;
+      const f1 = new THREE.Mesh(new THREE.BoxGeometry(5.3, 0.08, 0.12), frameMat);
+      f1.position.set(-1.1, 3.4, 0.8);
+      groundFloorGroup.add(f1);
+
+      const f2 = new THREE.Mesh(new THREE.BoxGeometry(5.3, 0.08, 0.12), frameMat);
+      f2.position.set(-1.1, 0.3, 0.8);
+      groundFloorGroup.add(f2);
+
+      // Vertical mullions
+      [-3.7, -1.9, -0.2, 1.5].forEach(x => {
+        const mul = new THREE.Mesh(new THREE.BoxGeometry(0.08, 3.2, 0.12), frameMat);
+        mul.position.set(x, 1.85, 0.8);
+        groundFloorGroup.add(mul);
+      });
+
+      // Left Exterior Wall (with window cutouts)
+      const wallL = new THREE.Mesh(new THREE.BoxGeometry(0.25, 3.3, 11.5), MAT.whiteWall);
+      wallL.position.set(-4.9, 1.95, -1.5);
+      wallL.castShadow = true;
+      groundFloorGroup.add(wallL);
+
+      // Back Exterior Wall
+      const wallBack = new THREE.Mesh(new THREE.BoxGeometry(9.0, 3.3, 0.25), MAT.whiteWall);
+      wallBack.position.set(-0.5, 1.95, -7.2);
+      wallBack.castShadow = true;
+      groundFloorGroup.add(wallBack);
+
+      // Right Exterior Wall (adjacent to carport)
+      const wallR = new THREE.Mesh(new THREE.BoxGeometry(0.25, 3.3, 11.5), MAT.whiteWall);
+      wallR.position.set(3.9, 1.95, -1.5);
+      wallR.castShadow = true;
+      groundFloorGroup.add(wallR);
+
+      // Interior Powder Room Partition Wall
+      const wallBath = new THREE.Mesh(new THREE.BoxGeometry(2.4, 3.3, 0.15), MAT.whiteWall);
+      wallBath.position.set(2.6, 1.95, -1.0);
+      groundFloorGroup.add(wallBath);
+    }
+
+    function buildLivingRoom() {
+      const living = new THREE.Group();
+      living.position.set(-2.2, 0.3, -1.2);
+
+      // TV Media Wall with vertical wood slats
+      const tvWall = new THREE.Mesh(new THREE.BoxGeometry(0.1, 3.0, 3.2), MAT.woodSlat);
+      tvWall.position.set(-2.55, 1.5, 0);
+      living.add(tvWall);
+
+      // 75" Flat Screen Television
+      const tv = new THREE.Mesh(
+        new THREE.BoxGeometry(0.06, 1.1, 2.0),
+        new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.1, metalness: 0.9 })
+      );
+      tv.position.set(-2.45, 1.7, 0);
+      living.add(tv);
+
+      // Floating Media Console
+      const consoleTable = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.35, 2.6), MAT.blackFrame);
+      consoleTable.position.set(-2.3, 0.5, 0);
+      living.add(consoleTable);
+
+      // Designer L-Shaped Sectional Sofa
+      const sofaMain = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.45, 2.8), MAT.fabricSofa);
+      sofaMain.position.set(0.5, 0.25, 0);
+      sofaMain.castShadow = true;
+      living.add(sofaMain);
+
+      const sofaBack = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.5, 2.8), MAT.fabricSofa);
+      sofaBack.position.set(1.0, 0.6, 0);
+      living.add(sofaBack);
+
+      // Marble Coffee Table
+      const coffeeTable = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.65, 0.65, 0.35, 24),
+        new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.2 })
+      );
+      coffeeTable.position.set(-0.8, 0.2, 0);
+      living.add(coffeeTable);
+
+      // Textured Area Rug
+      const rug = new THREE.Mesh(
+        new THREE.BoxGeometry(2.4, 0.02, 3.2),
+        new THREE.MeshStandardMaterial({ color: 0xd6d3d1, roughness: 0.9 })
+      );
+      rug.position.set(-0.8, 0.01, 0);
+      living.add(rug);
+
+      groundFloorGroup.add(living);
+    }
+
+    function buildDiningArea() {
+      const dining = new THREE.Group();
+      dining.position.set(-2.2, 0.3, -4.5);
+
+      // Modern Solid Wood Dining Table
+      const tableTop = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.08, 2.4), MAT.woodDark);
+      tableTop.position.set(0, 0.75, 0);
+      tableTop.castShadow = true;
+      dining.add(tableTop);
+
+      // Table legs
+      [-0.6, 0.6].forEach(x => {
+        [-1.0, 1.0].forEach(z => {
+          const leg = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.75, 0.08), MAT.blackFrame);
+          leg.position.set(x, 0.375, z);
+          dining.add(leg);
+        });
+      });
+
+      // 6 Modern Chairs
+      [-0.9, 0.9].forEach((x, sideIdx) => {
+        [-0.7, 0, 0.7].forEach(z => {
+          const chair = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.45, 0.42), MAT.fabricSofa);
+          chair.position.set(x, 0.22, z);
+          dining.add(chair);
+        });
+      });
+
+      // Linear Modern Chandelier Pendant
+      const pendant = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.08, 1.8), MAT.goldBrass);
+      pendant.position.set(0, 2.7, 0);
+      dining.add(pendant);
+
+      groundFloorGroup.add(dining);
+    }
+
+    function buildKitchen() {
+      const kitchen = new THREE.Group();
+      kitchen.position.set(1.0, 0.3, -5.2);
+
+      // Central Kitchen Island with Waterfall Quartz Countertop
+      const island = new THREE.Mesh(
+        new THREE.BoxGeometry(1.4, 0.9, 2.8),
+        new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.2, metalness: 0.1 })
+      );
+      island.position.set(0, 0.45, 0);
+      island.castShadow = true;
+      kitchen.add(island);
+
+      // Cooktop on island
+      const hob = new THREE.Mesh(
+        new THREE.BoxGeometry(0.6, 0.02, 0.8),
+        new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.1 })
+      );
+      hob.position.set(0.1, 0.91, -0.4);
+      kitchen.add(hob);
+
+      // 3 Counter Stools
+      [-0.8, 0, 0.8].forEach(z => {
+        const stool = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.65, 16), MAT.woodDark);
+        stool.position.set(-0.95, 0.32, z);
+        kitchen.add(stool);
+      });
+
+      // Back Wall Full-Height Modern Kitchen Cabinets & Built-in Ovens
+      const backCabs = new THREE.Mesh(new THREE.BoxGeometry(0.7, 2.8, 2.8), MAT.woodSlat);
+      backCabs.position.set(2.4, 1.4, 0);
+      kitchen.add(backCabs);
+
+      groundFloorGroup.add(kitchen);
+    }
+
+    function buildStaircase() {
+      // 1. Interior Staircase connecting Ground to 2nd Floor
+      const stairGroup = new THREE.Group();
+      stairGroup.position.set(2.6, 0.3, -1.8);
+
+      const numSteps = 16;
+      for (let i = 0; i < numSteps; i++) {
+        const step = new THREE.Mesh(
+          new THREE.BoxGeometry(1.1, 0.08, 0.3),
+          MAT.woodDark
+        );
+        step.position.set(0, i * 0.2, i * 0.24);
+        step.castShadow = true;
+        stairGroup.add(step);
+      }
+      groundFloorGroup.add(stairGroup);
+
+      // 2. Exterior Left Side Metal & Wood Staircase (Matching Photo!)
+      const extStair = new THREE.Group();
+      extStair.position.set(-4.4, 0.3, 0.5);
+
+      for (let i = 0; i < 15; i++) {
+        const tread = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.06, 0.28), MAT.woodDark);
+        tread.position.set(0, i * 0.21, 2.8 - i * 0.22);
+        tread.castShadow = true;
+        extStair.add(tread);
+      }
+      groundFloorGroup.add(extStair);
+    }
+
+    // =========================================================================
+    // HOUSE ARCHITECTURE – CARPORT (Right Side)
+    // =========================================================================
+    function buildCarport() {
+      const carport = new THREE.Group();
+      carport.position.set(5.5, 0, 0);
+
+      // Flat White Roof Slab with warm wooden fascia trim (matching photo)
+      const roofSlab = new THREE.Mesh(new THREE.BoxGeometry(4.8, 0.35, 8.5), MAT.whiteWall);
+      roofSlab.position.set(0, 3.45, 0);
+      roofSlab.castShadow = true;
+      carport.add(roofSlab);
+
+      // Wooden edge trim
+      const woodTrim = new THREE.Mesh(new THREE.BoxGeometry(4.85, 0.08, 8.55), MAT.woodSlat);
+      woodTrim.position.set(0, 3.25, 0);
+      carport.add(woodTrim);
+
+      // Support Columns on the right perimeter
+      const col1 = new THREE.Mesh(new THREE.BoxGeometry(0.4, 3.3, 0.4), MAT.whiteWall);
+      col1.position.set(2.1, 1.65, 3.8);
+      col1.castShadow = true;
+      carport.add(col1);
+
+      const col2 = new THREE.Mesh(new THREE.BoxGeometry(0.4, 3.3, 0.4), MAT.whiteWall);
+      col2.position.set(2.1, 1.65, -3.8);
+      col2.castShadow = true;
+      carport.add(col2);
+
+      // Back entrance door from carport
+      const door = new THREE.Mesh(new THREE.BoxGeometry(0.08, 2.3, 1.2), MAT.woodDark);
+      door.position.set(-1.5, 1.25, -2.5);
+      carport.add(door);
+
+      groundFloorGroup.add(carport);
+    }
+
+    // =========================================================================
+    // HOUSE ARCHITECTURE – SECOND FLOOR
+    // =========================================================================
+    function buildSecondFloor() {
+      // 1. Second Floor Intermediate Slab
+      const slab2 = new THREE.Mesh(
+        new THREE.BoxGeometry(9.0, 0.35, 11.5),
+        MAT.floorTile
+      );
+      slab2.position.set(-0.5, 3.45, -1.5);
+      slab2.receiveShadow = true;
+      secondFloorGroup.add(slab2);
+
+      // 2. Cantilevered Front Balcony (Projecting forward past ground floor)
+      const balconySlab = new THREE.Mesh(
+        new THREE.BoxGeometry(8.0, 0.35, 4.0),
+        MAT.floorTile
+      );
+      balconySlab.position.set(-1.0, 3.45, 2.5);
+      balconySlab.receiveShadow = true;
+      secondFloorGroup.add(balconySlab);
+
+      // Balcony Slim Black Metal Railings (matching photo)
+      buildBalconyRailings();
+
+      // Ceiling Fan on Balcony ceiling (clearly visible in reference photo!)
+      const fanGroup = new THREE.Group();
+      fanGroup.position.set(-1.0, 6.4, 2.2);
+      const fanHub = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.15, 12), MAT.blackFrame);
+      fanGroup.add(fanHub);
+      for (let i = 0; i < 4; i++) {
+        const blade = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.02, 1.0), MAT.blackFrame);
+        blade.position.set(0, 0, 0.5);
+        blade.rotation.y = (i * Math.PI) / 2;
+        fanGroup.add(blade);
+      }
+      secondFloorGroup.add(fanGroup);
+
+      // 3. Cantilevered White Architectural Frame Box
+      // Frames the front balcony and upper master bedroom
+      const frameTop = new THREE.Mesh(new THREE.BoxGeometry(8.2, 0.4, 4.2), MAT.whiteWall);
+      frameTop.position.set(-1.0, 6.7, 2.5);
+      frameTop.castShadow = true;
+      secondFloorGroup.add(frameTop);
+
+      const frameLeft = new THREE.Mesh(new THREE.BoxGeometry(0.4, 3.2, 4.2), MAT.whiteWall);
+      frameLeft.position.set(-4.9, 5.1, 2.5);
+      frameLeft.castShadow = true;
+      secondFloorGroup.add(frameLeft);
+
+      // 4. Upper Facade Cladding & Orange-Brown Accent Panels (matching photo)
+      buildSecondFloorWallsAndFacade();
+
+      // 5. Second Floor Furnished Interiors: Master Bedroom Suite, Walk-in Robe, Ensuite, Bedrooms 2 & 3, Family Lounge
+      buildMasterBedroom();
+      buildBedrooms2And3();
+      buildFamilyLounge();
+    }
+
+    function buildBalconyRailings() {
+      const railMat = MAT.blackFrame;
+      const h = 1.0;
+
+      // Front horizontal top rail
+      const topRailFront = new THREE.Mesh(new THREE.BoxGeometry(7.8, 0.05, 0.05), railMat);
+      topRailFront.position.set(-1.0, 4.45, 4.3);
+      secondFloorGroup.add(topRailFront);
+
+      // Vertical slim balusters across front
+      for (let x = -4.7; x <= 2.7; x += 0.22) {
+        const baluster = new THREE.Mesh(new THREE.BoxGeometry(0.025, h, 0.025), railMat);
+        baluster.position.set(x, 3.95, 4.3);
+        secondFloorGroup.add(baluster);
+      }
+
+      // Left & Right side balcony railings
+      const topRailL = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 3.5), railMat);
+      topRailL.position.set(-4.8, 4.45, 2.5);
+      secondFloorGroup.add(topRailL);
+
+      const topRailR = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 3.5), railMat);
+      topRailR.position.set(2.8, 4.45, 2.5);
+      secondFloorGroup.add(topRailR);
+
+      // Balcony Furniture (Woven chairs and table)
+      const bChair1 = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.6), MAT.woodDark);
+      bChair1.position.set(-0.3, 3.8, 2.8);
+      secondFloorGroup.add(bChair1);
+
+      const bChair2 = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.6), MAT.woodDark);
+      bChair2.position.set(-1.7, 3.8, 2.8);
+      secondFloorGroup.add(bChair2);
+
+      const bTable = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.45, 16), MAT.blackFrame);
+      bTable.position.set(-1.0, 3.75, 2.8);
+      secondFloorGroup.add(bTable);
+    }
+
+    function buildSecondFloorWallsAndFacade() {
+      // Upper Front Wall: Warm Wood Vertical Slat Cladding (Teak)
+      const woodWall = new THREE.Mesh(new THREE.BoxGeometry(7.6, 3.0, 0.15), MAT.woodSlat);
+      woodWall.position.set(-1.1, 5.1, 0.8);
+      secondFloorGroup.add(woodWall);
+
+      // Master Bedroom Large Glass Sliding Doors opening to Balcony
+      const mGlass = new THREE.Mesh(new THREE.BoxGeometry(5.2, 2.6, 0.08), MAT.glass);
+      mGlass.position.set(-1.5, 4.95, 0.85);
+      secondFloorGroup.add(mGlass);
+
+      // Right Side Upper Facade: Distinctive Orange-Brown / Terracotta Accent Panel (matching photo!)
+      const orangePanel = new THREE.Mesh(new THREE.BoxGeometry(0.3, 2.4, 4.0), MAT.orangeAccent);
+      orangePanel.position.set(3.95, 5.2, 1.2);
+      orangePanel.castShadow = true;
+      secondFloorGroup.add(orangePanel);
+
+      // Black-framed Casement Window on the orange accent panel (matching photo!)
+      const winFrame = new THREE.Mesh(new THREE.BoxGeometry(0.35, 1.4, 1.6), MAT.blackFrame);
+      winFrame.position.set(3.95, 5.2, 1.2);
+      secondFloorGroup.add(winFrame);
+
+      const winGlass = new THREE.Mesh(new THREE.BoxGeometry(0.38, 1.25, 1.45), MAT.glass);
+      winGlass.position.set(3.95, 5.2, 1.2);
+      secondFloorGroup.add(winGlass);
+
+      // Left Exterior Wall (2nd floor)
+      const wallL2 = new THREE.Mesh(new THREE.BoxGeometry(0.25, 3.1, 11.5), MAT.whiteWall);
+      wallL2.position.set(-4.9, 5.1, -1.5);
+      wallL2.castShadow = true;
+      secondFloorGroup.add(wallL2);
+
+      // Back Exterior Wall (2nd floor)
+      const wallBack2 = new THREE.Mesh(new THREE.BoxGeometry(9.0, 3.1, 0.25), MAT.whiteWall);
+      wallBack2.position.set(-0.5, 5.1, -7.2);
+      wallBack2.castShadow = true;
+      secondFloorGroup.add(wallBack2);
+
+      // Right Exterior Wall (2nd floor rear portion)
+      const wallR2 = new THREE.Mesh(new THREE.BoxGeometry(0.25, 3.1, 7.5), MAT.whiteWall);
+      wallR2.position.set(3.9, 5.1, -3.5);
+      wallR2.castShadow = true;
+      secondFloorGroup.add(wallR2);
+    }
+
+    function buildMasterBedroom() {
+      const master = new THREE.Group();
+      master.position.set(-2.2, 3.65, -1.2);
+
+      // King-Size Platform Bed
+      const bedBase = new THREE.Mesh(new THREE.BoxGeometry(2.3, 0.4, 2.5), MAT.woodDark);
+      bedBase.position.set(0, 0.2, 0);
+      bedBase.castShadow = true;
+      master.add(bedBase);
+
+      const mattress = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.35, 2.3), MAT.bedSheet);
+      mattress.position.set(0, 0.5, 0.05);
+      master.add(mattress);
+
+      // Upholstered Headboard
+      const headboard = new THREE.Mesh(new THREE.BoxGeometry(2.3, 1.1, 0.15), MAT.fabricSofa);
+      headboard.position.set(0, 0.9, -1.15);
+      master.add(headboard);
+
+      // Bedside Nightstands
+      [-1.35, 1.35].forEach(x => {
+        const stand = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.45, 0.5), MAT.woodDark);
+        stand.position.set(x, 0.25, -1.0);
+        master.add(stand);
+
+        // Bedside Lamp
+        const lamp = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.15, 0.35, 12), MAT.goldBrass);
+        lamp.position.set(x, 0.65, -1.0);
+        master.add(lamp);
+      });
+
+      // Master Ensuite Bathroom (freestanding oval bathtub)
+      const tub = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.55, 0.45, 0.6, 20),
+        new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.15 })
+      );
+      tub.scale.set(1.4, 1, 0.85);
+      tub.position.set(1.4, 0.35, 0.2);
+      master.add(tub);
+
+      secondFloorGroup.add(master);
+    }
+
+    function buildBedrooms2And3() {
+      // Bedroom 2 (Rear-Left)
+      const bed2 = new THREE.Group();
+      bed2.position.set(-2.8, 3.65, -5.2);
+
+      const b2Base = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.35, 2.1), MAT.woodDark);
+      b2Base.position.set(0, 0.2, 0);
+      bed2.add(b2Base);
+
+      const b2Mat = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.3, 2.0), MAT.bedSheet);
+      b2Mat.position.set(0, 0.45, 0);
+      bed2.add(b2Mat);
+
+      // Study Desk & Chair
+      const desk = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.08, 0.6), MAT.whiteWall);
+      desk.position.set(1.2, 0.75, 0.2);
+      bed2.add(desk);
+
+      secondFloorGroup.add(bed2);
+
+      // Bedroom 3 (Rear-Right)
+      const bed3 = new THREE.Group();
+      bed3.position.set(1.8, 3.65, -5.2);
+
+      const b3Base = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.35, 2.1), MAT.woodDark);
+      b3Base.position.set(0, 0.2, 0);
+      bed3.add(b3Base);
+
+      const b3Mat = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.3, 2.0), MAT.bedSheet);
+      b3Mat.position.set(0, 0.45, 0);
+      bed3.add(b3Mat);
+
+      secondFloorGroup.add(bed3);
+    }
+
+    function buildFamilyLounge() {
+      const lounge = new THREE.Group();
+      lounge.position.set(1.2, 3.65, -1.8);
+
+      const couch = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.45, 0.8), MAT.fabricSofa);
+      couch.position.set(0, 0.25, 0);
+      lounge.add(couch);
+
+      const table = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.35, 16), MAT.woodDark);
+      table.position.set(0, 0.2, 0.8);
+      lounge.add(table);
+
+      secondFloorGroup.add(lounge);
+    }
+
+    // =========================================================================
+    // HOUSE ARCHITECTURE – ROOF (Asymmetrical Overhanging Shed Roof)
+    // =========================================================================
+    function buildRoof() {
+      // Asymmetrical Roof Profile matching photo:
+      // Slopes gently down from front-left high (~7.9m) to rear-right low (~7.2m)
+      // Features a deep horizontal roof overhang with warm wood cladding on soffit
+      
+      const roofMain = new THREE.Group();
+      roofMain.position.set(-0.8, 7.15, -1.5);
+
+      // Top roof surface
+      const slabGeo = new THREE.BoxGeometry(10.2, 0.28, 14.5);
+      const roofMat = new THREE.MeshStandardMaterial({
+        color: 0x475569, // Modern dark slate charcoal
+        roughness: 0.5,
+        metalness: 0.1
+      });
+      const roofSlab = new THREE.Mesh(slabGeo, roofMat);
+      roofSlab.rotation.z = -0.04; // Slight slope
+      roofSlab.rotation.x = -0.03;
+      roofSlab.castShadow = true;
+      roofMain.add(roofSlab);
+
+      // Wooden Soffit / Underside of roof overhang (Teak wood slats)
+      const soffitGeo = new THREE.BoxGeometry(10.15, 0.05, 14.45);
+      const soffit = new THREE.Mesh(soffitGeo, MAT.woodSlat);
+      soffit.position.y = -0.16;
+      soffit.rotation.z = -0.04;
+      soffit.rotation.x = -0.03;
+      roofMain.add(soffit);
+
+      // Front Upper Clerestory Box in Teak Slat Cladding (Visible in photo)
+      const clereBox = new THREE.Mesh(new THREE.BoxGeometry(7.2, 0.9, 0.2), MAT.woodSlat);
+      clereBox.position.set(-0.2, -0.6, 5.6);
+      clereBox.castShadow = true;
+      roofMain.add(clereBox);
+
+      roofGroup.add(roofMain);
+    }
+
+    // =========================================================================
+    // INITIALIZE COMPLETE 3D SCENE
+    // =========================================================================
+    buildLandscape();
+    buildGroundFloor();
+    buildCarport();
+    buildSecondFloor();
+    buildRoof();
+
+    // Hide loading screen smoothly
+    setTimeout(() => {
+      loadingBar.style.width = '100%';
+      setTimeout(() => {
+        loadingScreen.style.opacity = '0';
+        setTimeout(() => loadingScreen.style.display = 'none', 700);
+      }, 400);
+    }, 600);
+
+    // =========================================================================
+    // CAMERA PERSPECTIVE PRESETS & SMOOTH TWEEN TRANSITIONS
+    // =========================================================================
+    const CAMERA_PRESETS = {
+      hero: {
+        pos: { x: 16, y: 17, z: 28 },
+        target: { x: 0, y: 4, z: 1 },
+        title: "Photo Hero Perspective",
+        desc: "Exact elevated angle matching reference photograph with pool, lawn, and carport."
+      },
+      gate: {
+        pos: { x: 4.5, y: 2.2, z: 23 },
+        target: { x: 3.5, y: 3.0, z: 4 },
+        title: "Front Entrance Gate",
+        desc: "Standing outside the modern timber gate looking up the driveway toward the carport."
+      },
+      top: {
+        pos: { x: 0, y: 45, z: 0.1 },
+        target: { x: 0, y: 0, z: 0 },
+        title: "Architectural Bird's-Eye View",
+        desc: "Top-down plan view of the full property, residential boundaries, and layout."
+      },
+      pool: {
+        pos: { x: -11, y: 4.5, z: 15 },
+        target: { x: -6.5, y: 0.5, z: 10 },
+        title: "Front-Left Garden & Pond",
+        desc: "Close-up of the decorative pond, rock fountain, water lilies, and stepping stones."
+      },
+      carport: {
+        pos: { x: 10, y: 3.5, z: 7 },
+        target: { x: 5.5, y: 2.5, z: 0 },
+        title: "Covered Carport & Driveway",
+        desc: "Right-wing covered carport with white roof, columns, and back entrance."
+      },
+      balcony: {
+        pos: { x: -1.0, y: 5.2, z: 5.5 },
+        target: { x: -1.0, y: 4.8, z: 1 },
+        title: "Second-Floor Front Balcony",
+        desc: "Outdoor covered balcony with slim black railings, teak ceiling, and scenic rice field views."
+      },
+      living: {
+        pos: { x: -0.5, y: 2.1, z: 1.8 },
+        target: { x: -2.5, y: 1.8, z: -1.2 },
+        title: "Ground Floor Living Room",
+        desc: "Open-plan modern lounge with wood slat TV media wall, sofa, and marble coffee table."
+      },
+      dining: {
+        pos: { x: -0.5, y: 2.1, z: -2.8 },
+        target: { x: -2.2, y: 1.6, z: -4.5 },
+        title: "Open-Plan Dining Area",
+        desc: "6-seater solid timber dining suite beneath modern linear brass chandelier."
+      },
+      kitchen: {
+        pos: { x: 2.8, y: 2.1, z: -3.5 },
+        target: { x: 1.0, y: 1.6, z: -5.2 },
+        title: "Chef's Kitchen & Island",
+        desc: "Quartz waterfall island countertop, induction cooktop, barstools, and integrated cabinetry."
+      },
+      master: {
+        pos: { x: -0.2, y: 5.2, z: 0.5 },
+        target: { x: -2.2, y: 4.8, z: -1.2 },
+        title: "Master Bedroom Suite",
+        desc: "King-size bed, upholstered headboard, freestanding ensuite tub, and sliding balcony doors."
+      },
+      bed2: {
+        pos: { x: -1.2, y: 5.2, z: -3.8 },
+        target: { x: -2.8, y: 4.8, z: -5.2 },
+        title: "Bedroom 2 (Guest Suite)",
+        desc: "Queen-size bed, study desk, and large corner windows overlooking rice fields."
+      },
+      bed3: {
+        pos: { x: 0.5, y: 5.2, z: -3.8 },
+        target: { x: 1.8, y: 4.8, z: -5.2 },
+        title: "Bedroom 3 (Garden View)",
+        desc: "Quiet secondary bedroom with minimalist modern decor."
+      },
+      lounge: {
+        pos: { x: 0, y: 5.2, z: -0.5 },
+        target: { x: 1.2, y: 4.8, z: -1.8 },
+        title: "Second Floor Family Lounge",
+        desc: "Upper hall retreat area connecting bedrooms with direct access to front balcony."
+      }
+    };
+
+    function transitionToView(presetKey) {
+      const preset = CAMERA_PRESETS[presetKey];
+      if (!preset) return;
+
+      // Update info HUD
+      infoTitle.innerText = preset.title;
+      infoDesc.innerText = preset.desc;
+
+      // Smooth Tween Camera Animation
+      new TWEEN.Tween(camera.position)
+        .to(preset.pos, 1200)
+        .easing(TWEEN.Easing.Cubic.Out)
+        .start();
+
+      new TWEEN.Tween(orbit.target)
+        .to(preset.target, 1200)
+        .easing(TWEEN.Easing.Cubic.Out)
+        .onUpdate(() => orbit.update())
+        .start();
+    }
+
+    // =========================================================================
+    // INTERACTIVE FLOOR CUTAWAY & ROOF TOGGLES
+    // =========================================================================
+    function setFloorMode(mode) {
+      STATE.floorMode = mode;
+      document.querySelectorAll('#floor-all, #floor-g, #floor-2').forEach(b => b.classList.remove('active'));
+
+      if (mode === 'all') {
+        document.getElementById('floor-all').classList.add('active');
+        groundFloorGroup.visible = true;
+        secondFloorGroup.visible = true;
+        roofGroup.visible = STATE.showRoof;
+        infoTitle.innerText = "Complete Villa Architecture";
+        infoDesc.innerText = "Displaying full two-storey tropical house structure and roof.";
+      } else if (mode === 'g') {
+        document.getElementById('floor-g').classList.add('active');
+        groundFloorGroup.visible = true;
+        secondFloorGroup.visible = false;
+        roofGroup.visible = false;
+        infoTitle.innerText = "Ground Floor Cutaway View";
+        infoDesc.innerText = "Second floor and roof removed to inspect living room, dining, kitchen, and patio.";
+      } else if (mode === '2') {
+        document.getElementById('floor-2').classList.add('active');
+        groundFloorGroup.visible = true;
+        secondFloorGroup.visible = true;
+        roofGroup.visible = false;
+        infoTitle.innerText = "Second Floor Interior Layout";
+        infoDesc.innerText = "Roof removed to inspect master suite, ensuite, bedrooms 2 & 3, and balcony.";
+      }
+    }
+
+    function toggleRoof() {
+      STATE.showRoof = !STATE.showRoof;
+      const btn = document.getElementById('toggle-roof');
+      if (STATE.showRoof) {
+        btn.classList.add('active');
+        btn.innerText = 'ON';
+        if (STATE.floorMode === 'all') roofGroup.visible = true;
+      } else {
+        btn.classList.remove('active');
+        btn.innerText = 'OFF';
+        roofGroup.visible = false;
+      }
+    }
+
+    // =========================================================================
+    // TIME OF DAY LIGHTING SELECTOR
+    // =========================================================================
+    function setTimeOfDay(tod) {
+      STATE.tod = tod;
+      document.querySelectorAll('#tod-day, #tod-golden, #tod-sunset, #tod-night').forEach(b => b.classList.remove('active'));
+
+      if (tod === 'day') {
+        document.getElementById('tod-day').classList.add('active');
+        scene.background.set(0xa0c8f0);
+        scene.fog.color.set(0xa0c8f0);
+        sunLight.color.set(0xfffaed);
+        sunLight.intensity = 1.4;
+        sunLight.position.set(35, 45, 25);
+        ambientLight.color.set(0xffffff);
+        ambientLight.intensity = 0.45;
+        warmLights.forEach(p => p.intensity = 0.3);
+      } else if (tod === 'golden') {
+        document.getElementById('tod-golden').classList.add('active');
+        scene.background.set(0xfb923c);
+        scene.fog.color.set(0xfb923c);
+        sunLight.color.set(0xff7700);
+        sunLight.intensity = 1.6;
+        sunLight.position.set(40, 18, 20);
+        ambientLight.color.set(0xfed7aa);
+        ambientLight.intensity = 0.5;
+        warmLights.forEach(p => p.intensity = 0.6);
+      } else if (tod === 'sunset') {
+        document.getElementById('tod-sunset').classList.add('active');
+        scene.background.set(0x7c2d12);
+        scene.fog.color.set(0x7c2d12);
+        sunLight.color.set(0xe11d48);
+        sunLight.intensity = 0.9;
+        sunLight.position.set(45, 8, 15);
+        ambientLight.color.set(0xf43f5e);
+        ambientLight.intensity = 0.35;
+        warmLights.forEach(p => p.intensity = 1.0);
+      } else if (tod === 'night') {
+        document.getElementById('tod-night').classList.add('active');
+        scene.background.set(0x020617);
+        scene.fog.color.set(0x020617);
+        sunLight.color.set(0x38bdf8);
+        sunLight.intensity = 0.15;
+        sunLight.position.set(-20, 30, -20);
+        ambientLight.color.set(0x1e293b);
+        ambientLight.intensity = 0.25;
+        // Turn on all warm architectural spotlights
+        warmLights.forEach(p => p.intensity = 1.5);
+      }
+    }
+
+    // =========================================================================
+    // FIRST-PERSON WALKTHROUGH MODE
+    // =========================================================================
+    function startWalkthrough() {
+      STATE.isWalkthrough = true;
+      orbit.enabled = false;
+      
+      // Start outside the front entrance gate facing the house
+      camera.position.set(4.5, 1.7, 21.5);
+      camera.lookAt(4.5, 1.7, 10);
+
+      pointerLock.lock();
+      crosshair.style.display = 'block';
+      walkthroughHint.classList.remove('hidden');
+      leftSidebar.classList.add('opacity-30', 'pointer-events-none');
+
+      infoTitle.innerText = "Walkthrough Active";
+      infoDesc.innerText = "Walk through the gate, step on the stone pathway, enter the front door, and explore every room!";
+    }
+
+    function exitWalkthrough() {
+      STATE.isWalkthrough = false;
+      pointerLock.unlock();
+      orbit.enabled = true;
+      crosshair.style.display = 'none';
+      walkthroughHint.classList.add('hidden');
+      leftSidebar.classList.remove('opacity-30', 'pointer-events-none');
+      transitionToView('hero');
+    }
+
+    pointerLock.addEventListener('unlock', () => {
+      if (STATE.isWalkthrough) exitWalkthrough();
+    });
+
+    // Keyboard handlers for walkthrough
+    const onKeyDown = function (event) {
+      switch (event.code) {
+        case 'ArrowUp':
+        case 'KeyW': moveState.forward = true; break;
+        case 'ArrowLeft':
+        case 'KeyA': moveState.left = true; break;
+        case 'ArrowDown':
+        case 'KeyS': moveState.backward = true; break;
+        case 'ArrowRight':
+        case 'KeyD': moveState.right = true; break;
+        case 'ShiftLeft':
+        case 'ShiftRight': moveState.sprint = true; break;
+      }
+    };
+
+    const onKeyUp = function (event) {
+      switch (event.code) {
+        case 'ArrowUp':
+        case 'KeyW': moveState.forward = false; break;
+        case 'ArrowLeft':
+        case 'KeyA': moveState.left = false; break;
+        case 'ArrowDown':
+        case 'KeyS': moveState.backward = false; break;
+        case 'ArrowRight':
+        case 'KeyD': moveState.right = false; break;
+        case 'ShiftLeft':
+        case 'ShiftRight': moveState.sprint = false; break;
+      }
+    };
+
+    document.addEventListener('keydown', onKeyDown);
+    document.addEventListener('keyup', onKeyUp);
+
+    // =========================================================================
+    // PROCEDURAL TROPICAL AMBIENCE AUDIO (Synthesized via Web Audio API)
+    // =========================================================================
+    let audioCtx = null;
+    let audioNodes = [];
+
+    function toggleAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+
+      if (STATE.audioPlaying) {
+        audioNodes.forEach(n => { try { n.stop(); n.disconnect(); } catch(e){} });
+        audioNodes = [];
+        STATE.audioPlaying = false;
+        document.getElementById('audio-icon').className = 'fa-solid fa-volume-xmark text-slate-400';
+      } else {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+
+        // 1. Gentle Wind / Breeze Synth (Brown Noise through lowpass filter)
+        const bufferSize = audioCtx.sampleRate * 2;
+        const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        let lastOut = 0.0;
+        for (let i = 0; i < bufferSize; i++) {
+          const white = Math.random() * 2 - 1;
+          output[i] = (lastOut + (0.02 * white)) / 1.02;
+          lastOut = output[i];
+          output[i] *= 3.5;
+        }
+
+        const whiteNoise = audioCtx.createBufferSource();
+        whiteNoise.buffer = noiseBuffer;
+        whiteNoise.loop = true;
+
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(350, audioCtx.currentTime);
+
+        const gainNode = audioCtx.createGain();
+        gainNode.gain.setValueAtTime(0.08, audioCtx.currentTime);
+
+        whiteNoise.connect(filter);
+        filter.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        whiteNoise.start();
+        audioNodes.push(whiteNoise);
+
+        // 2. Periodic Tropical Bird Chirp Synth
+        function scheduleBirdChirp() {
+          if (!STATE.audioPlaying) return;
+          const osc = audioCtx.createOscillator();
+          const chirpGain = audioCtx.createGain();
+          osc.type = 'sine';
+
+          const now = audioCtx.currentTime;
+          const startFreq = 2200 + Math.random() * 800;
+          osc.frequency.setValueAtTime(startFreq, now);
+          osc.frequency.exponentialRampToValueAtTime(startFreq + 600, now + 0.08);
+          osc.frequency.exponentialRampToValueAtTime(startFreq - 400, now + 0.16);
+
+          chirpGain.gain.setValueAtTime(0.001, now);
+          chirpGain.gain.linearRampToValueAtTime(0.03, now + 0.04);
+          chirpGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.2);
+
+          osc.connect(chirpGain);
+          chirpGain.connect(audioCtx.destination);
+          osc.start(now);
+          osc.stop(now + 0.25);
+
+          // Schedule next chirp in 3 to 7 seconds
+          setTimeout(scheduleBirdChirp, 3000 + Math.random() * 4000);
+        }
+
+        scheduleBirdChirp();
+        STATE.audioPlaying = true;
+        document.getElementById('audio-icon').className = 'fa-solid fa-volume-high text-orange-400';
+      }
+    }
+
+    // =========================================================================
+    // RAYCASTER FOR 3D CLICKABLE OBJECTS
+    // =========================================================================
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+
+    window.addEventListener('click', (event) => {
+      if (STATE.isWalkthrough) return;
+      if (event.target !== canvas) return;
+
+      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+      raycaster.setFromCamera(mouse, camera);
+      const intersects = raycaster.intersectObjects(worldGroup.children, true);
+
+      if (intersects.length > 0) {
+        const hit = intersects[0].object;
+        if (hit.name === 'swimming-pool') {
+          transitionToView('pool');
+        }
+      }
+    });
+
+    // Double-click to focus on hit point
+    window.addEventListener('dblclick', (event) => {
+      if (STATE.isWalkthrough || event.target !== canvas) return;
+      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+      raycaster.setFromCamera(mouse, camera);
+      const intersects = raycaster.intersectObjects(worldGroup.children, true);
+      if (intersects.length > 0) {
+        const pt = intersects[0].point;
+        new TWEEN.Tween(orbit.target)
+          .to({ x: pt.x, y: pt.y, z: pt.z }, 800)
+          .easing(TWEEN.Easing.Cubic.Out)
+          .start();
+      }
+    });
+
+    // =========================================================================
+    // UI BUTTON EVENT LISTENERS
+    // =========================================================================
+    document.getElementById('tod-day').addEventListener('click', () => setTimeOfDay('day'));
+    document.getElementById('tod-golden').addEventListener('click', () => setTimeOfDay('golden'));
+    document.getElementById('tod-sunset').addEventListener('click', () => setTimeOfDay('sunset'));
+    document.getElementById('tod-night').addEventListener('click', () => setTimeOfDay('night'));
+
+    document.getElementById('floor-all').addEventListener('click', () => setFloorMode('all'));
+    document.getElementById('floor-g').addEventListener('click', () => setFloorMode('g'));
+    document.getElementById('floor-2').addEventListener('click', () => setFloorMode('2'));
+    document.getElementById('toggle-roof').addEventListener('click', toggleRoof);
+
+    document.getElementById('view-hero').addEventListener('click', () => transitionToView('hero'));
+    document.getElementById('view-gate').addEventListener('click', () => transitionToView('gate'));
+    document.getElementById('view-top').addEventListener('click', () => transitionToView('top'));
+    document.getElementById('view-pool').addEventListener('click', () => transitionToView('pool'));
+    document.getElementById('view-carport').addEventListener('click', () => transitionToView('carport'));
+    document.getElementById('view-balcony').addEventListener('click', () => transitionToView('balcony'));
+
+    document.getElementById('room-living').addEventListener('click', () => transitionToView('living'));
+    document.getElementById('room-dining').addEventListener('click', () => transitionToView('dining'));
+    document.getElementById('room-kitchen').addEventListener('click', () => transitionToView('kitchen'));
+    document.getElementById('room-master').addEventListener('click', () => transitionToView('master'));
+    document.getElementById('room-bed2').addEventListener('click', () => transitionToView('bed2'));
+    document.getElementById('room-bed3').addEventListener('click', () => transitionToView('bed3'));
+    document.getElementById('room-lounge').addEventListener('click', () => transitionToView('lounge'));
+
+    document.getElementById('btn-walkthrough').addEventListener('click', startWalkthrough);
+    document.getElementById('btn-exit-walk').addEventListener('click', exitWalkthrough);
+
+    document.getElementById('btn-autorotate').addEventListener('click', () => {
+      STATE.autoRotate = !STATE.autoRotate;
+      orbit.autoRotate = STATE.autoRotate;
+      document.getElementById('btn-autorotate').classList.toggle('active', STATE.autoRotate);
+    });
+
+    document.getElementById('btn-reset').addEventListener('click', () => transitionToView('hero'));
+    document.getElementById('btn-audio').addEventListener('click', toggleAudio);
+
+    document.getElementById('btn-fullscreen').addEventListener('click', () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen().catch(() => {});
+      }
+    });
+
+    // Window Resize Handler
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // =========================================================================
+    // MAIN RENDER & ANIMATION LOOP
+    // =========================================================================
+    const clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      const delta = clock.getDelta();
+      TWEEN.update();
+
+      // First-person Walkthrough Physics & Smooth Movement
+      if (STATE.isWalkthrough && pointerLock.isLocked) {
+        velocity.x -= velocity.x * 10.0 * delta;
+        velocity.z -= velocity.z * 10.0 * delta;
+
+        direction.z = Number(moveState.forward) - Number(moveState.backward);
+        direction.x = Number(moveState.right) - Number(moveState.left);
+        direction.normalize();
+
+        const speed = moveState.sprint ? 14.0 : 7.0;
+
+        if (moveState.forward || moveState.backward) velocity.z -= direction.z * speed * delta;
+        if (moveState.left || moveState.right) velocity.x -= direction.x * speed * delta;
+
+        pointerLock.moveRight(-velocity.x);
+        pointerLock.moveForward(-velocity.z);
+
+        // Boundary constraint within property
+        camera.position.x = Math.max(-11.5, Math.min(11.5, camera.position.x));
+        camera.position.z = Math.max(-14.0, Math.min(23.0, camera.position.z));
+
+        // Intelligent Floor Elevation (Ground floor eye-level vs 2nd floor climbing)
+        const inStairArea = (camera.position.x > 1.5 && camera.position.x < 3.8 && camera.position.z > -2.5 && camera.position.z < 1.0);
+        const inSecondFloor = (camera.position.y > 3.0);
+
+        if (inStairArea) {
+          // Ascend / descend smoothly along staircase
+          const progress = (-camera.position.z + 1.0) / 3.5;
+          const targetY = 1.7 + Math.max(0, Math.min(1, progress)) * 3.5;
+          camera.position.y += (targetY - camera.position.y) * 0.1;
+        } else if (camera.position.y > 3.0 && camera.position.z < 4.0 && camera.position.z > -7.0 && camera.position.x > -4.5 && camera.position.x < 3.8) {
+          // On second floor interior or balcony
+          camera.position.y = 5.25;
+        } else {
+          // Ground floor eye level
+          camera.position.y = 1.7;
+        }
+      } else {
+        orbit.update();
+      }
+
+      // Subtle water ripple animation
+      if (MAT.water.map) {
+        MAT.water.map.offset.x += 0.0008;
+        MAT.water.map.offset.y += 0.0006;
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    animate();
+  </script>
+</body>
+</html>
