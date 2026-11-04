@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="800" viewBox="0 0 1100 800">
+<rect width="1100" height="800" fill="#f5f0df"/>
+<g font-family="Arial,sans-serif" fill="#214535">
+<text x="38" y="48" font-size="28" font-weight="bold">KITOFU HOUSE / PLAN AT A GLANCE</text>
+<text x="38" y="76" font-size="14">Original schematic · metres · +Z rear at top · -Z street at bottom · two habitable floors</text>
+<text x="38" y="115" font-size="20" font-weight="bold">01 SITE · 44 × 70 m</text>
+<rect x="38" y="135" width="352" height="560" fill="#a1b68d" stroke="#214535" stroke-width="4"/>
+<rect x="142" y="159" width="104" height="48" fill="#6bacb2" stroke="#fff8df" stroke-width="5"/>
+<text x="172" y="189" font-size="13">POOL</text>
+<rect x="72" y="159" width="60" height="64" fill="#c5ae86" stroke="#214535" stroke-width="2"/>
+<text x="81" y="186" font-size="12">BBQ</text><text x="80" y="202" font-size="11">covered</text>
+<rect x="118" y="248" width="192" height="27" fill="#b49365"/>
+<text x="181" y="266" font-size="12">TERRACE</text>
+<rect x="118" y="275" width="192" height="160" fill="#fff8e5" stroke="#214535" stroke-width="3"/>
+<text x="159" y="347" font-size="16" font-weight="bold">MANSION</text>
+<text x="164" y="371" font-size="13">24 × 20 m</text>
+<rect x="58" y="355" width="56" height="80" fill="#a5aaa4" stroke="#214535"/>
+<text x="62" y="395" font-size="10">GARAGE</text>
+<rect x="58" y="435" width="56" height="260" fill="#949d93"/>
+<rect x="204" y="435" width="20" height="260" fill="#cfbc92"/>
+<rect x="114" y="447" width="202" height="16" fill="#cfbc92"/>
+<ellipse cx="230" cy="555" rx="56" ry="40" fill="none" stroke="#fff8df" stroke-width="2" stroke-dasharray="5 5"/>
+<text x="241" y="621" font-size="15">FRONT LAWN</text>
+<text x="164" y="556" font-size="12">dog loop</text>
+<rect x="25" y="710" width="378" height="40" fill="#424e49"/>
+<text x="165" y="735" fill="#fff8df" font-size="15">STREET / -Z</text>
+<text x="472" y="115" font-size="20" font-weight="bold">02 GROUND FLOOR · Y = 0</text>
+<rect x="470" y="135" width="576" height="240" fill="#fff8e5" stroke="#214535" stroke-width="3"/>
+<path d="M710 135V375 M806 135V260 M830 135V270 M470 243H710" stroke="#214535" stroke-width="3" fill="none"/>
+<rect x="470" y="135" width="96" height="72" fill="#cee0da" stroke="#214535"/>
+<text x="479" y="172" font-size="13">BATH</text><text x="582" y="198" font-size="15">GUEST</text>
+<text x="552" y="316" font-size="17">LIVING</text>
+<text x="880" y="197" font-size="17">KITCHEN</text><text x="893" y="314" font-size="17">DINING</text>
+<rect x="770" y="180" width="48" height="85" fill="#c6a77a"/>
+<path d="M774 255H814 M774 245H814 M774 235H814 M774 225H814 M774 215H814 M774 205H814 M774 195H814" stroke="#fff8e5"/>
+<text x="724" y="305" font-size="13">HALL</text><text x="730" y="349" font-size="13">FOYER</text>
+<text x="719" y="398" font-size="12">front entrance ↑</text>
+<text x="472" y="444" font-size="20" font-weight="bold">03 UPSTAIRS · Y = 3.6 m</text>
+<rect x="470" y="465" width="576" height="240" fill="#fff8e5" stroke="#214535" stroke-width="3"/>
+<path d="M710 465V705 M806 590V705 M830 465V590 M470 573H710 M830 573H1046" stroke="#214535" stroke-width="3" fill="none"/>
+<rect x="470" y="465" width="96" height="72" fill="#cee0da" stroke="#214535"/>
+<text x="476" y="494" font-size="12">SHARED</text><text x="489" y="511" font-size="12">BATH</text>
+<rect x="470" y="573" width="96" height="48" fill="#cee0da" stroke="#214535"/>
+<text x="482" y="603" font-size="13">ENSUITE</text>
+<text x="580" y="515" font-size="14">FAMILY</text><text x="577" y="538" font-size="14">LOUNGE</text>
+<text x="553" y="655" font-size="17">MASTER</text>
+<text x="886" y="526" font-size="17">BEDROOM</text>
+<text x="855" y="607" font-size="12">GALLERY / OFFICE</text>
+<rect x="878" y="631" width="161" height="70" fill="#cee0da" stroke="#214535" stroke-dasharray="5 3"/>
+<text x="893" y="656" font-size="12">DINING VOID</text>
+<text x="890" y="678" font-size="11">open to below</text>
+<rect x="770" y="510" width="48" height="85" fill="#c6a77a" stroke="#214535" stroke-dasharray="4 3"/>
+<text x="718" y="627" font-size="12">HALL</text><text x="718" y="491" font-size="10">LANDING</text>
+<rect x="542" y="705" width="168" height="36" fill="#c6a77a" stroke="#214535"/>
+<text x="585" y="729" font-size="13">BALCONY</text>
+<text x="472" y="778" font-size="12">Room zones are schematic; Python defines the actual door/window openings and furniture.</text>
+</g></svg>
