@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#151e28" />
+  <title>Modern Tropical Dream House | Front & Pool</title>
+  <link rel="stylesheet" href="style.css" />
+  <!-- All imports use exactly the same version of Three.js. -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.187.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.187.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <main id="viewport" aria-label="Interactive 3D house scene">
+    <div class="topbar">
+      <div class="brand"><span class="mark">⌂</span><div><span class="eyebrow">YOUR DREAM HOUSE DESIGN</span><h1>Dream House <span>3D</span></h1></div></div>
+      <div class="tag">THREE.JS · INTERACTIVE</div>
+    </div>
+
+    <aside class="controls" aria-label="3D model controls">
+      <div class="section-title">CAMERA VIEWS</div>
+      <div class="button-grid">
+        <button data-view="angle" class="active">◈ &nbsp;Angle</button>
+        <button data-view="front">▣ &nbsp;Front</button>
+        <button data-view="side">▥ &nbsp;Right</button>
+        <button data-view="back">▤ &nbsp;Back</button>
+        <button data-view="pool">≈ &nbsp;Pool</button>
+        <button data-view="top">▤ &nbsp;Top</button>
+      </div>
+      <div class="divider"></div>
+      <div class="section-title">LIGHTING</div>
+      <div class="button-grid two">
+        <button data-mode="dusk" class="active">☾ &nbsp;Dusk</button>
+        <button data-mode="day">☀ &nbsp;Daytime</button>
+      </div>
+      <button id="reset">↺ &nbsp;Reset camera</button>
+    </aside>
+
+    <div class="help"><strong>HOW TO EXPLORE</strong><span>Drag to rotate&nbsp; · &nbsp;Scroll to zoom&nbsp; · &nbsp;Right-drag to pan</span></div>
+    <div class="footer-note">CONCEPT MODEL &nbsp;•&nbsp; Option A front • Option C backyard pool • V2</div>
+    <div id="error" role="alert" hidden></div>
+  </main>
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
